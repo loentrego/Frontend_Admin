@@ -35,7 +35,59 @@ body {
 body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transition: all 0.3s var(--ease); }
 :where(a, button, input):focus-visible { outline: 2px solid var(--lima); outline-offset: 2px; }
 
-.login { display: grid; place-items: center; min-height: 100dvh; padding: 2rem 1.25rem; }
+.login { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100dvh; padding: 2rem 1.25rem; }
+
+/* ---------- Red de calles: nuestro movimiento por la ciudad ----------
+   Calles discontinuas, nodos en los cruces y cometas lima que recorren
+   distintas rutas. Sutil y solo con transform/opacity/trazo. */
+.city { position: absolute; pointer-events: none; }
+.city .c-street { fill: none; stroke: var(--city-street, rgba(255, 255, 255, 0.16)); stroke-width: 1.5; stroke-dasharray: 2 8; stroke-linecap: round; }
+.city .c-node { fill: var(--city-node, rgba(255, 255, 255, 0.3)); }
+.city .c-hub { fill: var(--city-hub, #B5DB2E); opacity: 0.7; transform-box: fill-box; transform-origin: center; animation: c-hub 4s ease-in-out var(--d, 0s) infinite; }
+.city .c-comet, .city .c-glow {
+  fill: none;
+  stroke: var(--city-comet, #B5DB2E);
+  stroke-linecap: round;
+  stroke-dasharray: 9 140;
+  stroke-dashoffset: 9;
+  animation: c-comet var(--t, 7s) linear var(--w, 0s) var(--city-loops, infinite) both;
+}
+.city .c-comet { stroke-width: 2.25; }
+.city .c-glow { stroke-width: 7; opacity: 0.18; }
+@keyframes c-comet { to { stroke-dashoffset: -100; } }
+@keyframes c-hub { 0%, 100% { transform: scale(1); opacity: 0.55; } 50% { transform: scale(1.5); opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) {
+  .city .c-comet, .city .c-glow { animation: none; opacity: 0; }
+  .city .c-hub { animation: none; }
+}
+
+/* Superficie de flujo: plano de ciudad inclinado que se pierde al fondo */
+.flow {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 46vh;
+  perspective: 700px;
+  perspective-origin: 50% 0%;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(to top, #000 35%, transparent 100%);
+          mask: linear-gradient(to top, #000 35%, transparent 100%);
+  animation: flow-in 1.2s var(--ease) both;
+}
+.flow-plane {
+  position: absolute;
+  left: -30%; right: -30%; top: 0; bottom: -40%;
+  transform: rotateX(58deg);
+  transform-origin: 50% 0%;
+}
+.flow-city { inset: 0; width: 100%; height: 100%; --city-street: rgba(181, 219, 46, 0.22); --city-node: rgba(255, 255, 255, 0.35); --city-loops: infinite; }
+.flow-city { --city-street: rgba(181, 219, 46, 0.16); }
+.flow-city .c-street { stroke-width: 1.5; }
+.flow-city .c-node { opacity: 0.6; }
+.flow-city .c-comet, .flow-city .c-glow { stroke-dasharray: 3.5 140; stroke-dashoffset: 3.5; }
+.flow-city .c-comet { stroke-width: 2; opacity: 0.85; }
+.flow-city .c-glow { stroke-width: 6; opacity: 0.14; }
+@keyframes flow-in { from { opacity: 0; transform: translateY(30px); } }
 
 /* ---------- Acceso ---------- */
 .access { width: 100%; display: grid; place-items: center; }
