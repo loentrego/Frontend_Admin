@@ -42,6 +42,7 @@ body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transi
    distintas rutas. Sutil y solo con transform/opacity/trazo. */
 .city { position: absolute; pointer-events: none; }
 .city .c-street { fill: none; stroke: var(--city-street, rgba(255, 255, 255, 0.16)); stroke-width: 1.5; stroke-dasharray: 2 8; stroke-linecap: round; }
+.city .c-avenue { fill: none; stroke: var(--city-avenue, rgba(255, 255, 255, 0.32)); stroke-width: 2.2; stroke-dasharray: 6 7; stroke-linecap: round; }
 .city .c-node { fill: var(--city-node, rgba(255, 255, 255, 0.3)); }
 .city .c-hub { fill: var(--city-hub, #B5DB2E); opacity: 0.7; transform-box: fill-box; transform-origin: center; animation: c-hub 4s ease-in-out var(--d, 0s) infinite; }
 .city .c-comet, .city .c-glow {
@@ -61,22 +62,31 @@ body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transi
   .city .c-hub { animation: none; }
 }
 
-/* Fondo: la ciudad completa, plana, con nuestro movimiento */
-.bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; animation: bg-in 1.2s var(--ease) both; }
-.bg::after {
-  /* La zona de la tarjeta queda más tranquila para leer */
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(38% 46% at 50% 50%, rgba(11, 8, 38, 0.85), rgba(11, 8, 38, 0.2) 70%, transparent);
+/* Superficie de flujo: plano de Bogotá inclinado que se pierde al fondo */
+.flow {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: 52vh;
+  perspective: 700px;
+  perspective-origin: 50% 0%;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: linear-gradient(to top, #000 30%, transparent 100%);
+          mask: linear-gradient(to top, #000 30%, transparent 100%);
+  animation: flow-in 1.2s var(--ease) both;
 }
-.bg-city { inset: 0; width: 100%; height: 100%; --city-loops: infinite; --city-street: rgba(181, 219, 46, 0.14); --city-node: rgba(255, 255, 255, 0.35); }
-.bg-city .c-comet { stroke-width: 2.25; }
-.bg-city .c-glow { stroke-width: 7; opacity: 0.2; }
-@keyframes bg-in { from { opacity: 0; } }
+.flow-plane { position: absolute; left: -30%; right: -30%; top: 0; bottom: -40%; transform: rotateX(58deg); transform-origin: 50% 0%; }
+.flow-city { inset: 0; width: 100%; height: 100%; --city-loops: infinite; --city-street: rgba(181, 219, 46, 0.14); --city-avenue: rgba(181, 219, 46, 0.3); --city-node: rgba(255, 255, 255, 0.3); }
+.flow-city .c-node { opacity: 0.45; }
+.flow-city .c-hub { opacity: 0.5; }
+.flow-city .c-comet { stroke-width: 2.6; }
+.flow-city .c-glow { stroke-width: 8; opacity: 0.2; }
+@keyframes flow-in { from { opacity: 0; transform: translateY(30px); } }
 
 /* ---------- Acceso ---------- */
-.access { width: 100%; display: grid; place-items: center; }
+.access { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.75rem; }
+.login-logo { width: 190px; height: auto; animation: rise 0.6s var(--ease) both; }
+.kicker { font-size: 0.8125rem; font-weight: 600; color: var(--lima); letter-spacing: 0.02em; }
 .card {
   width: 100%;
   max-width: 400px;
@@ -89,7 +99,7 @@ body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transi
 }
 .wordmark-sm { display: block; width: 140px; height: auto; margin-bottom: 1.25rem; }
 .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: rgba(181, 219, 46, 0.14); color: var(--lima); font: 700 0.75rem 'Baloo 2', sans-serif; }
-.card h1 { margin: 0 0 1.5rem; font-family: 'Baloo 2', system-ui, sans-serif; font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: #fff; }
+.card h1 { margin: 2px 0 1.5rem; font-family: 'Baloo 2', system-ui, sans-serif; font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: #fff; }
 .sub { margin: 4px 0 1.5rem; font-size: 0.875rem; color: var(--muted); }
 
 .form-error { margin-bottom: 1rem; padding: 0 12px; border-radius: 10px; background: var(--fail-bg); color: var(--fail); font-size: 0.8125rem; font-weight: 600; line-height: 2.5rem; }
