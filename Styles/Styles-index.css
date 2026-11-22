@@ -62,22 +62,18 @@ body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transi
   .city .c-hub { animation: none; }
 }
 
-/* Superficie de puntos (Scripts/puntos.js): plano inclinado que se pierde al fondo */
-.flow {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  height: 58vh;
-  perspective: 700px;
-  perspective-origin: 50% 0%;
-  overflow: hidden;
+/* Fondo de puntos planos: una trama fija que se desvanece hacia arriba */
+.puntos {
+  position: fixed; inset: 0;
   pointer-events: none;
-  -webkit-mask: linear-gradient(to top, #000 35%, transparent 100%);
-          mask: linear-gradient(to top, #000 35%, transparent 100%);
-  animation: flow-in 0.9s var(--ease) both;
+  background-image: radial-gradient(circle, rgba(225, 220, 255, 0.32) 1.1px, transparent 1.6px);
+  background-size: 18px 18px;
+  background-position: center;
+  -webkit-mask: linear-gradient(to top, #000 10%, rgba(0, 0, 0, 0.35) 60%, transparent 100%);
+          mask: linear-gradient(to top, #000 10%, rgba(0, 0, 0, 0.35) 60%, transparent 100%);
+  animation: puntos-in 0.9s var(--ease) both;
 }
-.flow-plane { position: absolute; left: -30%; right: -30%; top: 0; bottom: -60%; transform: rotateX(58deg); transform-origin: 50% 0%; }
-.flow-puntos { display: block; width: 100%; height: 100%; }
-@keyframes flow-in { from { opacity: 0; transform: translateY(30px); } }
+@keyframes puntos-in { from { opacity: 0; } }
 
 /* ---------- Acceso ---------- */
 .access { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.75rem; }
