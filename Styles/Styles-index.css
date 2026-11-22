@@ -35,41 +35,10 @@ body {
 body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transition: all 0.3s var(--ease); }
 :where(a, button, input):focus-visible { outline: 2px solid var(--lima); outline-offset: 2px; }
 
-.login { display: grid; grid-template-columns: 1fr 1fr; min-height: 100dvh; }
-
-/* ---------- Lado de marca ---------- */
-.brand-side {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2.5rem 3rem;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
-.wordmark { width: 150px; height: auto; }
-.brand-line { font-family: 'Baloo 2', system-ui, sans-serif; font-size: clamp(2rem, 1.2rem + 2vw, 3rem); font-weight: 700; line-height: 1.05; color: #fff; }
-.brand-line span { color: var(--lima); }
-
-/* Pila de cajas (misma animación que AppWeb y mantenimiento) */
-.stack { position: relative; align-self: center; width: 150px; height: 220px; }
-.stack-shadow { position: absolute; left: 50%; bottom: -10px; width: 140px; height: 16px; margin-left: -70px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent); animation: shadow 6s var(--ease) 1s 6; }
-.box {
-  position: absolute;
-  left: 50%;
-  aspect-ratio: 553 / 544;
-  background: #fff;
-  -webkit-mask: url("../img/isotipo.png") center / contain no-repeat;
-          mask: url("../img/isotipo.png") center / contain no-repeat;
-  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.4));
-  transform-origin: 50% 100%;
-}
-.b1 { bottom: 0;     width: 96px; margin-left: -48px; animation: bump 6s var(--ease) 1s 6; }
-.b2 { bottom: 88px;  width: 76px; margin-left: -33px; animation: bump 6s var(--ease) 1.03s 6; }
-.b3 { bottom: 160px; width: 56px; margin-left: -32px; animation: dispatch 6s linear 1s 6; }
+.login { display: grid; place-items: center; min-height: 100dvh; padding: 2rem 1.25rem; }
 
 /* ---------- Acceso ---------- */
-.access { display: grid; place-items: center; padding: 2rem 1.25rem; }
+.access { width: 100%; display: grid; place-items: center; }
 .card {
   width: 100%;
   max-width: 400px;
@@ -80,7 +49,7 @@ body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transi
   box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.55);
   animation: rise 0.6s var(--ease) both;
 }
-.wordmark-sm { display: none; width: 132px; height: auto; margin-bottom: 1rem; }
+.wordmark-sm { display: block; width: 140px; height: auto; margin-bottom: 1.25rem; }
 .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: rgba(181, 219, 46, 0.14); color: var(--lima); font: 700 0.75rem 'Baloo 2', sans-serif; }
 .card h1 { margin-top: 0.75rem; font-family: 'Baloo 2', system-ui, sans-serif; font-size: 1.75rem; font-weight: 700; line-height: 1.1; color: #fff; }
 .sub { margin: 4px 0 1.5rem; font-size: 0.875rem; color: var(--muted); }
@@ -139,31 +108,10 @@ body.leaving .card { opacity: 0; transform: translateY(-8px) scale(0.98); transi
 .foot-note { margin-top: 1.25rem; font-size: 0.8125rem; color: var(--muted); text-align: center; }
 .foot-note a { color: var(--lima); }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 860px) {
-  .login { grid-template-columns: 1fr; }
-  .brand-side { display: none; }
-  .wordmark-sm { display: block; }
-}
-
 /* ---------- Animaciones ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
 @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
 .shake { animation: shake 0.4s; }
-@keyframes dispatch {
-  0%, 46%  { transform: none; opacity: 1; animation-timing-function: ease-out; }
-  50%      { transform: translateY(3px) scale(1.07, 0.9); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
-  62%      { transform: translate(220px, -200px) rotate(30deg); opacity: 1; }
-  63%      { transform: translate(220px, -200px) rotate(30deg); opacity: 0; }
-  64%      { transform: translateY(-280px) rotate(-16deg); opacity: 0; animation-timing-function: ease-out; }
-  66%      { transform: translateY(-280px) rotate(-16deg); opacity: 1; animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
-  76%      { transform: translateY(0) rotate(0); animation-timing-function: ease-out; }
-  80%      { transform: translateY(-18px) rotate(2deg); animation-timing-function: ease-in; }
-  84%      { transform: translateY(0) scale(1.06, 0.92); animation-timing-function: ease-out; }
-  88%, 100% { transform: none; }
-}
-@keyframes bump { 0%, 75% { transform: none; } 77% { transform: scale(1.04, 0.93); } 81% { transform: none; } 84% { transform: scale(1.02, 0.97); } 88%, 100% { transform: none; } }
-@keyframes shadow { 0%, 75% { transform: none; } 77% { transform: scaleX(1.12); } 82%, 100% { transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
