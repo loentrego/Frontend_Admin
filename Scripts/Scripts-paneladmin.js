@@ -161,6 +161,7 @@
     resumen: { title: 'Resumen del día', render: renderResumen },
     pedidos: { title: 'Pedidos', render: renderPedidos },
     repartidores: { title: 'Repartidores', render: renderRepartidores },
+    mapa: { title: 'Mapa de zonas', render: () => window.LEMapa && window.LEMapa.montar() },
     enlaces: { title: 'Enlaces de registro', render: renderEnlaces },
     intercambio: { title: 'Intercambio de repartidor', render: renderIntercambio },
   };

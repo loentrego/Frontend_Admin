@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=3">
+<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=4">
 <link rel="icon" href="../img/icons/icon-192.png">
 </head>
 <body>
@@ -35,6 +35,10 @@
       <a href="#repartidores" data-nav="repartidores">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h4l3-6h4l1 6M13 11l-2-4H8"/></svg>
         <span>Repartidores</span>
+      </a>
+      <a href="#mapa" data-nav="mapa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 4-6 2.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
+        <span>Mapa</span>
       </a>
       <a href="#enlaces" data-nav="enlaces">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
@@ -121,6 +125,43 @@
       <div class="rider-grid" id="riders"></div>
     </section>
 
+    <!-- ===== Mapa de zonas ===== -->
+    <section class="view" id="view-mapa" hidden>
+      <div class="kpis mz-kpis" id="mz-kpis"></div>
+      <div class="mz-grid">
+        <article class="card mz-mapa-card">
+          <header class="mz-barra-sup">
+            <div class="chips" id="mz-capas" role="toolbar" aria-label="Capas del mapa">
+              <button type="button" class="chip" data-capa="calor" aria-pressed="true">Calor</button>
+              <button type="button" class="chip" data-capa="zonas" aria-pressed="true">Zonas</button>
+              <button type="button" class="chip" data-capa="calles" aria-pressed="true">Calles</button>
+              <button type="button" class="chip" data-capa="repartidores" aria-pressed="true">Repartidores</button>
+            </div>
+            <div class="seg seg-sm" id="mz-periodo" role="group" aria-label="Periodo">
+              <button type="button" data-periodo="hoy" aria-pressed="true">Hoy</button>
+              <button type="button" data-periodo="semana" aria-pressed="false">7 días</button>
+            </div>
+          </header>
+          <div class="mz-lienzo">
+            <canvas id="mz-mapa" role="img" aria-label="Mapa de Bogotá, Funza y Soacha con las zonas de reparto, el calor de pedidos y los repartidores"></canvas>
+            <div class="mz-tip" id="mz-tip" hidden></div>
+          </div>
+          <footer class="mz-leyenda">
+            <span class="mz-ley-calor"><i></i>Menos pedidos · Más pedidos</span>
+            <span><i class="mz-moto"></i>Repartidor</span>
+            <span class="mz-ley-nota">Datos de ejemplo · Calles © OpenStreetMap</span>
+          </footer>
+        </article>
+        <aside class="mz-lado">
+          <article class="card mz-detalle" id="mz-detalle" aria-live="polite"></article>
+          <article class="card">
+            <header class="card-head"><h2>Zonas por presión</h2><span class="mz-sub">pedidos por repartidor</span></header>
+            <ol class="mz-lista" id="mz-lista"></ol>
+          </article>
+        </aside>
+      </div>
+    </section>
+
     <!-- ===== Enlaces ===== -->
     <section class="view" id="view-enlaces" hidden>
       <p class="section-sub">Crea un enlace de un solo uso, válido por 24 horas, para que un repartidor o un comercio cree su cuenta. Cópialo y envíalo por WhatsApp o correo.</p>
@@ -176,6 +217,7 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="../Scripts/Scripts-paneladmin.js?v=2"></script>
+<script src="../Scripts/mapa-zonas.js?v=3"></script>
+<script src="../Scripts/Scripts-paneladmin.js?v=3"></script>
 </body>
 </html>
