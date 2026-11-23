@@ -382,8 +382,8 @@
   const dato = (tono, label, valor, pie = '') => `<div class="st-dato" data-tono="${tono}"><dt>${label}</dt><dd>${valor}</dd>${pie ? `<small>${pie}</small>` : ''}</div>`;
   function zonasDe(riderId) {
     // zonas guardadas por el mapa; si aún no se ha abierto, las iniciales (una por repartidor según el mapa)
-    const INICIALES = { r1: 3, r2: 4, r3: 3, r4: 1, r5: 1, r6: 1, r7: 1 };
-    try { const d = JSON.parse(localStorage.getItem('loentrego-admin-zonas-v1') || 'null'); return d ? d.zonas.filter((z) => (z.repartidores || []).includes(riderId)).length : (INICIALES[riderId] ?? 0); } catch { return INICIALES[riderId] ?? 0; }
+    const INICIALES = {};
+    try { const d = JSON.parse(localStorage.getItem('loentrego-admin-zonas-v2') || 'null'); return d ? d.zonas.filter((z) => (z.repartidores || []).includes(riderId)).length : (INICIALES[riderId] ?? 0); } catch { return INICIALES[riderId] ?? 0; }
   }
 
   // ---------- Repartidores: estadísticas por repartidor ----------

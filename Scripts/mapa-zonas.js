@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const CLAVE = 'loentrego-admin-zonas-v1';
+  const CLAVE = 'loentrego-admin-zonas-v2';   // v2: se empieza sin zonas
   const PEDIDOS_POR_REPARTIDOR = 12;
   const FUENTE_UI = 'Poppins, system-ui, sans-serif';
 
@@ -255,7 +255,7 @@
         return;
       }
     } catch { /* datos dañados */ }
-    zonas = zonasIniciales();
+    zonas = [];   // todavía no hay repartidores en la plataforma: sin zonas iniciales
   }
   let avisoGuardado = 0;
   function guardar() {
@@ -437,7 +437,9 @@ $$;
 
   // ---------- Estadísticas ----------
   let periodo = 'hoy';
-  const factor = () => (periodo === 'hoy' ? 1 : 6.6);
+  const PERIODOS = { hoy: [1, 'hoy'], mes: [26, 'en 1 mes'], semestre: [156, 'en 6 meses'], anio: [312, 'en 1 año'], historico: [720, 'en total'] };
+  const factor = () => PERIODOS[periodo][0];
+  const textoPeriodo = () => PERIODOS[periodo][1];
   function statsLocalidad(t) {
     const [p, tiempo] = DEMANDA[t.id] || [0, 0];
     const pedidos = Math.round(p * factor());
@@ -491,7 +493,7 @@ $$;
   let canvas, ctx, W = 0, H = 0, DPR = 1, esc0 = 1, bx = 0, by = 0, zoom = 1, panX = 0, panY = 0;
   const aPx = (lon, lat) => [(bx + (lon - LON[0]) * KX * esc0) * zoom + panX, (by + (LAT[1] - lat) * esc0) * zoom + panY];
   const aGeo = (x, y) => { const sx = (x - panX) / zoom, sy = (y - panY) / zoom; return [LON[0] + (sx - bx) / (KX * esc0), LAT[1] - (sy - by) / esc0]; };
-  const capas = { calor: true, calles: true, nombres: true };
+  const capas = { calor: true, calles: true, localidades: true };
   let modo = 'ver';
   let elegida = null;        // índice en la lista del tipo activo
   let encima = null;
@@ -609,45 +611,39 @@ $$;
     const fs = Math.max(10.5, Math.min(12.5, W / 72));
     ctx.font = `600 ${fs}px ${FUENTE_UI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
-    if (tipo === 'localidades') {
+    if (capas.localidades) {
       territorio.forEach((t) => {
         const n = statsLocalidad(t).nivel;
         trazar(t);
-        ctx.fillStyle = `rgba(${hex2rgb(n.color)},${t.tipo === 'rural' ? 0.08 : 0.2})`; ctx.fill('evenodd');
+        ctx.fillStyle = `rgba(${hex2rgb(n.color)},${t.tipo === 'rural' ? 0.06 : zonas.length ? 0.12 : 0.2})`; ctx.fill('evenodd');
         ctx.strokeStyle = 'rgba(236,233,248,.26)'; ctx.lineWidth = 0.7; ctx.setLineDash(t.aproximado ? [1.5, 4] : [3, 4]); ctx.stroke(); ctx.setLineDash([]);
       });
-      if (capas.calor) ctx.drawImage(capaCalor, panX, panY, W * zoom, H * zoom);
-    } else {
-      // localidades como referencia tenue debajo
-      ctx.strokeStyle = 'rgba(236,233,248,.12)'; ctx.lineWidth = 0.6; ctx.setLineDash([2, 5]);
-      territorio.forEach((t) => { trazar(t); ctx.stroke(); });
-      ctx.setLineDash([]);
-      if (capas.calor) { ctx.globalAlpha = 0.55; ctx.drawImage(capaCalor, panX, panY, W * zoom, H * zoom); ctx.globalAlpha = 1; }
-      zonas.forEach((z) => {
-        trazar(z);
-        const col = z.repartidores.length ? riderColor(z.repartidores[0]) : null;
-        if (col) { ctx.fillStyle = `rgba(${hex2rgb(col)},.26)`; ctx.fill('evenodd'); }
-        else { ctx.save(); ctx.clip('evenodd'); ctx.strokeStyle = 'rgba(236,233,248,.18)'; ctx.lineWidth = 1; ctx.beginPath(); for (let k = -H; k < W; k += 9) { ctx.moveTo(k, 0); ctx.lineTo(k + H, H); } ctx.stroke(); ctx.restore(); trazar(z); }
-        ctx.setLineDash([5, 4]); ctx.strokeStyle = col ? `rgba(${hex2rgb(col)},.7)` : 'rgba(236,233,248,.45)'; ctx.lineWidth = 0.9; ctx.stroke(); ctx.setLineDash([]);
-      });
     }
+    if (capas.calor) { ctx.globalAlpha = zonas.length ? 0.6 : 1; ctx.drawImage(capaCalor, panX, panY, W * zoom, H * zoom); ctx.globalAlpha = 1; }
+    zonas.forEach((z) => {
+      trazar(z);
+      const col = z.repartidores.length ? riderColor(z.repartidores[0]) : 'rgb(236,233,248)';
+      ctx.fillStyle = `rgba(${col.startsWith('#') ? hex2rgb(col) : '236,233,248'},.24)`; ctx.fill('evenodd');
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = col.startsWith('#') ? `rgba(${hex2rgb(col)},.7)` : 'rgba(236,233,248,.45)'; ctx.lineWidth = 0.9; ctx.stroke(); ctx.setLineDash([]);
+    });
     ctx.restore();
     // borde suave de la cobertura
     ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(236,233,248,.32)'; ctx.lineWidth = 0.9; ctx.stroke(cob); ctx.setLineDash([]);
     const L = lista();
-    if (encima !== null && encima !== elegida && L[encima] && modo !== 'dibujar') { trazar(L[encima]); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.stroke(); }
+    if (encima && !(encima.t === tipo && encima.i === elegida) && modo !== 'dibujar') { const o = (encima.t === 'localidades' ? territorio : zonas)[encima.i]; if (o) { trazar(o); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.stroke(); } }
     if (elegida !== null && L[elegida]) {
       trazar(L[elegida]);
       ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fill('evenodd');
       ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.6; ctx.stroke();
     }
     // nombres
-    if (capas.nombres && tipo === 'localidades') {
-      L.forEach((z, i) => {
-        if (tipo === 'localidades' && z.tipo === 'rural' && i !== elegida) return;
+    if (capas.localidades) {
+      territorio.forEach((z, i) => {
+        const sel = tipo === 'localidades' && i === elegida;
+        if (z.tipo === 'rural' && !sel) return;
         // la etiqueta va en la parte de la localidad que está dentro de la cobertura
         let pe = puntoEtiqueta(z);
-        if (tipo === 'localidades' && !enCobertura(pe)) {
+        if (!enCobertura(pe)) {
           const ring = parteMayor(z), pts = [];
           const ys = ring.map((q) => q[1]), xs = ring.map((q) => q[0]);
           for (let i = 1; i < 14; i++) for (let j = 1; j < 14; j++) { const q = [Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) * i / 14, Math.min(...ys) + (Math.max(...ys) - Math.min(...ys)) * j / 14]; if (dentroZona(q[0], q[1], z) && enCobertura(q)) pts.push(q); }
@@ -658,13 +654,8 @@ $$;
         const [x, y] = aPx(...pe);
         if (x < -80 || y < -20 || x > W + 80 || y > H + 20) return;
         const corto = z.nombre.replace(/^(Funza|Soacha) · /, '').replace(/^Comuna (\d) · /, 'C$1 · ').split(' · ')[0];
-        if (tipo === 'localidades') {
-          if (zoom < 1.6 && areaKm2(z) < 6 && i !== elegida) return;   // nombres chicos solo al acercar
-          etiqueta(corto, x, y, 'rgba(18,12,82,.82)', '#F4F2FF');
-        } else {
-          const rep = z.repartidores[0];
-          etiqueta(corto, x, y, 'rgba(18,12,82,.86)', '#F4F2FF', rep ? riderColor(rep) : 'rgba(236,233,248,.5)');
-        }
+        if (!sel && (zoom < 1.6 && areaKm2(z) < 6 || W < 640 && zoom < 2.2)) return;   // nombres chicos (o en pantallas chicas) solo al acercar
+        etiqueta(corto, x, y, 'rgba(18,12,82,.82)', '#F4F2FF');
       });
     }
     // edición
@@ -736,29 +727,28 @@ $$;
 
   function pintarLista() {
     const box = $('#mz-lista');
-    $('#mz-lista-titulo').textContent = tipo === 'localidades' ? 'Localidades por demanda' : 'Zonas por repartidor';
-    $('#mz-lista-sub').textContent = tipo === 'localidades' ? 'pedidos ' + (periodo === 'hoy' ? 'hoy' : '7 días') : 'autoasignación';
-    if (tipo === 'localidades') {
+    $('#mz-lista-titulo').textContent = 'Zonas de reparto';
+    $('#mz-lista-sub').textContent = 'autoasignación';
+    const conZonas = riders().map((r) => ({ id: r.id, nombre: r.nombre, color: riderColor(r.id) }))
+      .map((g) => ({ ...g, mias: zonas.map((z, i) => [z, i]).filter(([z]) => z.repartidores.includes(g.id)) }))
+      .filter((g) => g.mias.length);
+    let html = conZonas.length ? conZonas.map((g) => `<li class="mz-grupo"><div class="mz-grupo-cab"><span class="mz-avatar" style="--c:${g.color}">${iniciales(g.nombre)}</span><b>${esc(g.nombre)}</b><small>${g.mias.length} zona${g.mias.length === 1 ? '' : 's'}</small></div>
+        <ul>${g.mias.map(([z, i]) => { const s2 = statsReparto(z); const act = tipo === 'reparto' && elegida === i; return `<li><button type="button" class="mz-fila mini${act ? ' activa' : ''}" data-mz-zona="${i}" aria-pressed="${act}"><span class="mz-fila-top"><b>${esc(z.nombre)}</b><span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.km2.toFixed(1)} km²</span></span></span></button></li>`; }).join('')}</ul></li>`).join('')
+      : `<li class="mz-vacio mz-vacio-zonas">Aún no hay zonas de reparto. Cuando tengas repartidores, créalas con <b>+ Nueva zona</b>.</li>`;
+    if (capas.localidades && territorio.length) {
       const st = territorio.map(statsLocalidad);
-      const orden = territorio.map((_, i) => i).sort((a, b) => st[b].pedidos - st[a].pedidos);
+      const orden = territorio.map((_, i) => i).sort((x, y) => st[y].pedidos - st[x].pedidos);
       const max = Math.max(1, ...st.map((x) => x.pedidos));
-      box.innerHTML = orden.map((i) => {
-        const t = territorio[i], s = st[i];
-        return `<li><button type="button" class="mz-fila${elegida === i ? ' activa' : ''}" data-mz-zona="${i}" aria-pressed="${elegida === i}">
-          <span class="mz-fila-top"><b>${esc(t.nombre)}</b>${t.aproximado ? '<span class="mz-aprox" title="Límite aproximado">aprox.</span>' : ''}${nivelPill(s.nivel)}</span>
-          <span class="mz-barra"><i style="--w:${(s.pedidos / max) * 100}%;--c:${s.nivel.color}"></i></span>
-          <span class="mz-fila-datos"><span>${fmt(s.pedidos)} pedidos</span><span>${s.tiempo} min</span><span>${s.cubre.length ? s.cubre.length + ' zona' + (s.cubre.length > 1 ? 's' : '') + ' de reparto' : 'sin zona'}</span></span>
+      html += `<li class="mz-sep"><b>Localidades por demanda</b><small>pedidos ${textoPeriodo()}</small></li>` + orden.map((i) => {
+        const t = territorio[i], s2 = st[i], act = tipo === 'localidades' && elegida === i;
+        return `<li><button type="button" class="mz-fila${act ? ' activa' : ''}" data-mz-loc="${i}" aria-pressed="${act}">
+          <span class="mz-fila-top"><b>${esc(t.nombre)}</b>${t.aproximado ? '<span class="mz-aprox" title="Límite aproximado">aprox.</span>' : ''}${nivelPill(s2.nivel)}</span>
+          <span class="mz-barra"><i style="--w:${(s2.pedidos / max) * 100}%;--c:${s2.nivel.color}"></i></span>
+          <span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.tiempo} min</span><span>${s2.cubre.length ? s2.cubre.length + ' zona' + (s2.cubre.length > 1 ? 's' : '') : 'sin zona'}</span></span>
         </button></li>`;
-      }).join('') || '<li class="mz-vacio">Cargando localidades…</li>';
-      return;
+      }).join('');
     }
-    const grupos = [...riders().map((r) => ({ id: r.id, nombre: r.nombre, color: riderColor(r.id) })), { id: '', nombre: 'Sin repartidor', color: 'rgba(236,233,248,.45)' }];
-    box.innerHTML = grupos.map((g) => {
-      const mias = zonas.map((z, i) => [z, i]).filter(([z]) => (g.id ? z.repartidores.includes(g.id) : !z.repartidores.length));
-      if (!mias.length && !g.id) return '';
-      return `<li class="mz-grupo"><div class="mz-grupo-cab"><span class="mz-avatar" style="--c:${g.color}">${g.id ? iniciales(g.nombre) : '—'}</span><b>${esc(g.nombre)}</b><small>${mias.length} zona${mias.length === 1 ? '' : 's'}</small></div>
-        <ul>${mias.map(([z, i]) => { const s = statsReparto(z); return `<li><button type="button" class="mz-fila mini${elegida === i ? ' activa' : ''}" data-mz-zona="${i}" aria-pressed="${elegida === i}"><span class="mz-fila-top"><b>${esc(z.nombre)}</b><span class="mz-fila-datos"><span>${fmt(s.pedidos)} pedidos</span><span>${s.km2.toFixed(1)} km²</span></span></span></button></li>`; }).join('') || '<li class="mz-vacio">Sin zonas asignadas.</li>'}</ul></li>`;
-    }).join('');
+    box.innerHTML = html;
   }
 
   function pintarDetalle() {
@@ -793,11 +783,9 @@ $$;
     }
     const L = lista();
     if (elegida === null || !L[elegida]) {
-      box.innerHTML = tipo === 'localidades'
-        ? `<p class="mz-vacio">Toca una localidad en el mapa o en la lista para ver su demanda y qué repartidores la cubren.</p>`
-        : modo === 'editar'
+      box.innerHTML = modo === 'editar'
           ? `<p class="mz-vacio">Toca una zona para editarla. Arrastra un vértice para moverlo (los compartidos con zonas vecinas se mueven juntos; con <kbd>Alt</kbd> solo ese), arrastra un punto medio para agregar uno y haz doble clic en un vértice para borrarlo.</p>`
-          : `<p class="mz-vacio">Cada color es un repartidor.</p>`;
+          : `<p class="mz-vacio">Toca una zona o una localidad para ver su detalle.</p>`;
       return;
     }
     if (tipo === 'localidades') {
@@ -839,7 +827,7 @@ $$;
           const suyas = zonas.filter((q) => q.repartidores.includes(id));
           const carga = Math.round(suyas.reduce((n, q) => n + statsReparto(q).pedidos / q.repartidores.length, 0));
           const cap = (Number(z.capacidad) || PEDIDOS_POR_REPARTIDOR) * factor();
-          return `<p class="mz-consejo${carga > cap ? ' alerta' : ''}"><b>${esc(riderNombre(id).split(' ')[0])}</b>: ${fmt(carga)} pedidos ${periodo === 'hoy' ? 'al día' : 'en 7 días'} en ${suyas.length} zona${suyas.length > 1 ? 's' : ''}${carga > cap ? ` · supera su capacidad (${fmt(cap)})` : ''}.</p>`;
+          return `<p class="mz-consejo${carga > cap ? ' alerta' : ''}"><b>${esc(riderNombre(id).split(' ')[0])}</b>: ${fmt(carga)} pedidos ${textoPeriodo()} en ${suyas.length} zona${suyas.length > 1 ? 's' : ''}${carga > cap ? ` · supera su capacidad (${fmt(cap)})` : ''}.</p>`;
         }).join('');
     box.innerHTML = `
       <header class="mz-det-cab"><div><small>Zona de reparto · ${munTexto(z.municipio)}</small><h3>${esc(z.nombre)}</h3></div>
@@ -859,8 +847,7 @@ $$;
   function huboCambio() { cacheCruce.clear(); pintarResumen(); pintarLista(); clearTimeout(generarPendiente); generarPendiente = setTimeout(arrancar, 50); }
   function cambiarTipo(t) {
     tipo = t; elegida = null; encima = null;
-    $$('#mz-tipo button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mzTipo === t));
-    if (t === 'localidades' && (modo === 'editar' || modo === 'dibujar')) modo = 'ver';
+
     cambiarModo(modo);
     pintarPaneles(); arrancar();
   }
@@ -880,7 +867,11 @@ $$;
 
   // ---------- Interacción ----------
   const posEvento = (e) => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-  const zonaEn = (lon, lat) => { const L = lista(); for (let i = L.length - 1; i >= 0; i--) if (dentroZona(lon, lat, L[i])) return i; return null; };
+  function objetoEn(lon, lat, soloZonas) {
+    for (let i = zonas.length - 1; i >= 0; i--) if (dentroZona(lon, lat, zonas[i])) return { t: 'reparto', i };
+    if (!soloZonas && capas.localidades && enCobertura([lon, lat])) for (let i = territorio.length - 1; i >= 0; i--) if (dentroZona(lon, lat, territorio[i])) return { t: 'localidades', i };
+    return null;
+  }
   const mismo = (a, b) => Math.abs(a[0] - b[0]) < 1e-5 && Math.abs(a[1] - b[1]) < 1e-5;
   function gemelos(v) { const out = []; zonas.forEach((z) => z.partes.forEach((r) => r.forEach((w) => { if (w !== v && mismo(w, v)) out.push(w); }))); return out; }
   function partirBorde(a, b, medio) {
@@ -942,12 +933,12 @@ $$;
         return;
       }
       const h = handleEn(x, y);
-      encima = zonaEn(lon, lat);
+      encima = objetoEn(lon, lat, modo === 'editar');
       canvas.style.cursor = h ? (h.tipo === 'v' ? 'grab' : 'copy') : modo === 'dibujar' || modo === 'probar' ? 'crosshair' : encima !== null ? 'pointer' : 'default';
       const tip = $('#mz-tip');
       if (encima !== null && modo === 'ver') {
-        const z = lista()[encima];
-        const linea = tipo === 'localidades' ? `${fmt(statsLocalidad(z).pedidos)} pedidos · ${esc(tipoTexto[z.tipo] || '')}` : (z.repartidores.length ? z.repartidores.map((id) => esc(riderNombre(id))).join(', ') : 'Sin repartidor');
+        const z = (encima.t === 'localidades' ? territorio : zonas)[encima.i];
+        const linea = encima.t === 'localidades' ? `${fmt(statsLocalidad(z).pedidos)} pedidos · ${esc(tipoTexto[z.tipo] || '')}` : (z.repartidores.length ? z.repartidores.map((id) => esc(riderNombre(id))).join(', ') : 'Sin repartidor');
         tip.innerHTML = `<b>${esc(z.nombre)}</b><span>${linea}</span>`;
         tip.hidden = false;
         tip.style.transform = `translate(${Math.min(x + 14, W - 220)}px, ${Math.min(y + 14, H - 50)}px)`;
@@ -984,8 +975,10 @@ $$;
       pintarDetalle(); return;
     }
     if (modo === 'probar') { probar(lat, lon); return; }
-    const z = zonaEn(lon, lat);
-    elegida = z === elegida && modo === 'ver' ? null : z;
+    const o = objetoEn(lon, lat, modo === 'editar');
+    if (!o) { elegida = null; }
+    else if (o.t === tipo && o.i === elegida && modo === 'ver') elegida = null;
+    else { tipo = o.t; elegida = o.i; }
     pintarLista(); pintarDetalle();
   }
   function acercar(f, x = W / 2, y = H / 2) {
@@ -1050,16 +1043,24 @@ $$;
       if (capa) {
         capas[capa.dataset.capa] = !capas[capa.dataset.capa];
         capa.setAttribute('aria-pressed', capas[capa.dataset.capa]);
-        if (capa.dataset.capa === 'calor') pintarCalor(); else callesSucias = true;
+        if (capa.dataset.capa === 'calor') pintarCalor();
+        if (capa.dataset.capa === 'localidades') { if (tipo === 'localidades') { tipo = 'reparto'; elegida = null; } pintarLista(); pintarDetalle(); }
         arrancar(); return;
       }
       const per = e.target.closest('[data-periodo]');
       if (per) { periodo = per.dataset.periodo; $$('#mz-periodo button').forEach((b) => b.setAttribute('aria-pressed', b === per)); pintarPaneles(); return; }
       const m = e.target.closest('[data-mz-modo]');
-      if (m) { cambiarModo(m.dataset.mzModo); arrancar(); return; }
+      if (m) { if (m.dataset.mzModo !== 'ver' && tipo !== 'reparto') { tipo = 'reparto'; elegida = null; } cambiarModo(m.dataset.mzModo); pintarLista(); arrancar(); return; }
+      const filaLoc = e.target.closest('[data-mz-loc]');
+      if (filaLoc) {
+        const i = Number(filaLoc.dataset.mzLoc);
+        if (tipo === 'localidades' && elegida === i) elegida = null; else { tipo = 'localidades'; elegida = i; encuadrar(territorio[i]); }
+        pintarLista(); pintarDetalle(); arrancar(); return;
+      }
       const fila = e.target.closest('[data-mz-zona]');
       if (fila) {
         const i = Number(fila.dataset.mzZona);
+        if (tipo !== 'reparto') { tipo = 'reparto'; elegida = null; }
         elegida = elegida === i && modo === 'ver' ? null : i;
         if (elegida !== null && (modo === 'editar' || tipo === 'localidades')) encuadrar(lista()[elegida]);
         pintarLista(); pintarDetalle(); arrancar(); return;
@@ -1125,7 +1126,7 @@ $$;
         const { zonas: nuevas, avisos } = deGeoJSON(JSON.parse(await archivo.text()));
         if (!confirm(`El archivo tiene ${nuevas.length} zona${nuevas.length > 1 ? 's' : ''} de reparto. ¿Reemplazar las ${zonas.length} actuales?`)) return;
         zonas = nuevas; elegida = null; zoom = 1; panX = 0; panY = 0; callesSucias = true;
-        if (tipo !== 'reparto') cambiarTipo('reparto');
+        tipo = 'reparto';
         guardar(); pintarDetalle(); arrancar();
         aviso(`Importadas ${nuevas.length} zonas de reparto.${avisos.length ? '<br>' + avisos.slice(0, 4).map(esc).join('<br>') : ''}`, avisos.length ? 'error' : 'ok');
       } catch (err) {
@@ -1178,7 +1179,7 @@ $$;
         .catch(() => { /* sin calles */ });
       window.addEventListener('storage', (e) => { if (e.key === CLAVE) { cargar(); elegida = null; huboCambio(); pintarDetalle(); } });
     }
-    cambiarTipo(tipo);
+    tipo = 'reparto'; cambiarModo(modo); pintarPaneles(); arrancar();
     requestAnimationFrame(() => { medir(); arrancar(); });
   }
 

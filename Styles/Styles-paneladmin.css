@@ -1066,3 +1066,17 @@ body[data-vista="mapa"] .topbar h1 { font-size: 1.375rem; }
   .nav a { flex: 0 0 auto !important; min-width: 64px; }
   .st-kpis .kpi-value { font-size: clamp(1.1rem, 5vw, 1.6rem) !important; overflow-wrap: anywhere; }
 }
+
+/* Mapa unificado: capas Localidades y Calor, periodo con 5 opciones */
+#mz-menu, .mz-menu-wrap, [data-capa="calles"], [data-capa="nombres"] { display: none !important; }
+.mz-sep { list-style: none; display: flex; justify-content: space-between; align-items: baseline; margin: 0.9rem 0.7rem 0.3rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
+.mz-sep b { font-family: var(--font-display); font-size: 0.9375rem; color: var(--text-strong); }
+.mz-sep small { font-size: 0.75rem; color: var(--muted); }
+.mz-vacio-zonas { list-style: none; padding: 0.4rem 0.7rem 0.2rem; }
+.mz-vacio-zonas b { color: var(--lima); }
+@media (max-width: 640px) { #mz-periodo button { padding: 0 8px; font-size: 0.75rem; } .mz-arriba-izq #mz-periodo { display: inline-flex !important; } .mz-arriba-der { top: 120px !important; } }
+@media (max-width: 640px) {
+  .mz-arriba-der .chips { display: flex !important; }
+  .mz-arriba-der { top: 112px !important; }
+  .mz-zoom, #view-mapa:not([data-detalle="si"]) .mz-zoom { top: 210px !important; }
+}

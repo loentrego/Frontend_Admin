@@ -138,7 +138,7 @@ Recomendaciones:
 
 - Guarda el punto del pedido como `geography(Point, 4326)` o `geometry(Point, 4326)`. Si vas a buscar repartidores por distancia, crea también un índice GIST para esos puntos.
 - Si el resultado trae `dentro = false`, márcalo para revisión: la dirección quedó fuera de las zonas.
-- Antes de importar, usa **⋯ → Revisar zonas** en el panel. Revisa solapes, huecos, polígonos cruzados y zonas sin repartidor, con una muestra cada unos 200 m.
+- Antes de importar, revisa que las zonas no se solapen; el panel recorta las vecinas automáticamente al crear o editar.
 
 ## 4. Editar en el panel
 
@@ -155,13 +155,9 @@ En la pestaña **Zonas de reparto**:
   - Arrastra un punto blanco para mover el borde, o uno pequeño para agregar un punto. Doble clic quita un punto.
   - Los puntos compartidos con zonas vecinas se mueven juntos.
   - Al soltar un punto, la zona editada conserva su área y las vecinas se recortan.
-- **Menú ⋯**:
-  - *Revisar zonas*: busca solapes, huecos y polígonos cruzados.
-  - *Descargar zonas*: baja el GeoJSON de este documento.
-  - *Cargar zonas desde archivo…*: sube un GeoJSON.
-  - *Volver a las zonas iniciales*.
+- La interfaz no tiene menú de archivos. El GeoJSON y el SQL se obtienen desde el código (ver abajo).
 - Si una zona queda totalmente dentro de otra, la de afuera conserva un **hueco**. En el GeoJSON sale como un anillo interior, y PostGIS lo maneja igual.
-- Los cambios se guardan en el navegador (`localStorage`, clave `loentrego-admin-zonas-v1`) hasta que exista el backend.
+- Los cambios se guardan en el navegador (`localStorage`, clave `loentrego-admin-zonas-v2`) hasta que exista el backend.
 
 Desde el código, para el backend o el equipo técnico (no aparece en la interfaz):
 
