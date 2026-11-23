@@ -45,6 +45,7 @@
 
   // ---------- Utilidades ----------
   const money = (n) => '$' + Number(n || 0).toLocaleString('es-CO');
+  const fmt = (n) => Number(n || 0).toLocaleString('es-CO');
   const initials = (name) => String(name).trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const phone = (v) => String(v).replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
@@ -194,27 +195,59 @@
   }
 
   // ---------- Resumen ----------
+  // Periodo del resumen (las cifras históricas son de ejemplo hasta tener el backend)
+  const PERIODOS = { hoy: [1, 'de hoy', 'hoy'], mes: [26, 'del último mes', 'en 1 mes'], semestre: [156, 'de los últimos 6 meses', 'en 6 meses'], anio: [312, 'del último año', 'en 1 año'], historico: [720, 'desde el inicio', 'en total'] };
+  let resPeriodo = 'hoy';
+  const REDES = {   // datos de ejemplo: [actual, nuevos por día]
+    google: { nota: 4.8, resenas: 214, nuevas: 0.6 },
+    instagram: { seguidores: 3840, nuevos: 9, alcance: 1250 },
+    facebook: { seguidores: 1920, nuevos: 3, alcance: 640 },
+  };
+  const estrellas = (n) => `<span class="estrellas" style="--n:${n}" aria-label="${n} de 5 estrellas">★★★★★</span>`;
   function renderResumen() {
     const all = store.all();
     const by = (f) => all.filter(f);
+    const [f, txt, corto] = PERIODOS[resPeriodo];
+    $('#res-periodo-txt').textContent = txt;
     const k = {
-      total: all.length,
-      curso: by((o) => !FINALES.includes(o.estado)).length,
-      entregados: by((o) => o.estado === 'entregado').length,
-      novedades: by((o) => o.estado === 'no_entregado').length,
-      cobrado: by((o) => o.estado === 'entregado').reduce((s, o) => s + (o.cobro || 0), 0),
+      total: all.length * f,
+      curso: resPeriodo === 'hoy' ? by((o) => !FINALES.includes(o.estado)).length : 0,
+      entregados: by((o) => o.estado === 'entregado').length * f,
+      novedades: by((o) => o.estado === 'no_entregado').length * f,
+      cobrado: by((o) => o.estado === 'entregado').reduce((s, o) => s + (o.cobro || 0), 0) * f,
       porCobrar: by((o) => !FINALES.includes(o.estado)).reduce((s, o) => s + (o.cobro || 0), 0),
     };
+    const cerrados = k.entregados + k.novedades;
     const pct = k.total ? Math.round((k.entregados / k.total) * 100) : 0;
     $('#kpis').innerHTML = `
-      <article class="kpi kpi-hero"><span class="kpi-label">Pedidos de hoy</span><b class="kpi-value" data-count-to="${k.total}">${k.total}</b>
+      <article class="kpi kpi-hero"><span class="kpi-label">Pedidos ${corto}</span><b class="kpi-value" data-count-to="${k.total}">${k.total}</b>
         <span class="kpi-bar"><i style="--w:${pct}%"></i></span><span class="kpi-foot">${pct}% entregado</span></article>
-      <article class="kpi" data-tono="cielo"><span class="kpi-label"><i class="dot" data-tono="move"></i>En curso</span><b class="kpi-value" data-count-to="${k.curso}">${k.curso}</b></article>
+      ${resPeriodo === 'hoy'
+        ? `<article class="kpi" data-tono="cielo"><span class="kpi-label"><i class="dot" data-tono="move"></i>En curso</span><b class="kpi-value" data-count-to="${k.curso}">${k.curso}</b></article>`
+        : `<article class="kpi" data-tono="cielo"><span class="kpi-label"><i class="dot" data-tono="move"></i>Efectividad</span><b class="kpi-value">${cerrados ? Math.round((k.entregados / cerrados) * 100) : 0}%</b></article>`}
       <article class="kpi" data-tono="menta"><span class="kpi-label"><i class="dot" data-tono="ok"></i>Entregados</span><b class="kpi-value" data-count-to="${k.entregados}">${k.entregados}</b></article>
       <article class="kpi" data-tono="coral"><span class="kpi-label"><i class="dot" data-tono="fail"></i>Novedades</span><b class="kpi-value" data-count-to="${k.novedades}">${k.novedades}</b></article>
       <article class="kpi kpi-money" data-tono="ambar"><span class="kpi-label">Efectivo cobrado</span><b class="kpi-value" data-money="1" data-count-to="${k.cobrado}">${money(k.cobrado)}</b><span class="kpi-foot">${money(k.porCobrar)} por cobrar</span></article>`;
 
-    $('#riders-today').innerHTML = RIDERS.map((r) => {
+    // Reputación y redes (ejemplo)
+    const g = REDES.google, ig = REDES.instagram, fb = REDES.facebook;
+    const nuevos = (x) => Math.round(x * f);
+    $('#redes').innerHTML = `
+      <article class="red-card" data-red="google"><header><span class="red-ico">G</span><b>Google Business</b><small>reseñas</small></header>
+        <div class="red-num"><b>${g.nota.toFixed(1)}</b>${estrellas(g.nota)}</div>
+        <p class="red-pie"><b>${fmt(g.resenas)}</b> reseñas · <span class="sube">+${nuevos(g.nuevas)}</span> ${corto}</p></article>
+      <article class="red-card" data-red="instagram"><header><span class="red-ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></span><b>Instagram</b><small>@loentrego</small></header>
+        <div class="red-num"><b>${fmt(ig.seguidores)}</b><span>seguidores</span></div>
+        <p class="red-pie"><span class="sube">+${fmt(nuevos(ig.nuevos))}</span> ${corto} · alcance ${fmt(nuevos(ig.alcance))}</p></article>
+      <article class="red-card" data-red="facebook"><header><span class="red-ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8a0 0 0 0 1 0 0Z"/></svg></span><b>Facebook</b><small>LoEntrego</small></header>
+        <div class="red-num"><b>${fmt(fb.seguidores)}</b><span>seguidores</span></div>
+        <p class="red-pie"><span class="sube">+${fmt(nuevos(fb.nuevos))}</span> ${corto} · alcance ${fmt(nuevos(fb.alcance))}</p></article>
+      <p class="red-nota">Datos de ejemplo · se conectarán con Google Business, Instagram y Facebook.</p>`;
+
+    // Listas que se mueven hacia abajo (se duplican para un ciclo continuo)
+    const filasRep = RIDERS.map((r) => {
       const mine = all.filter((o) => riderOf(o) === r.id);
       const done = mine.filter((o) => FINALES.includes(o.estado)).length;
       const cash = mine.filter((o) => o.estado === 'entregado').reduce((s, o) => s + (o.cobro || 0), 0);
@@ -224,13 +257,16 @@
         <span class="rt-side"><b>${done}/${mine.length}</b><small>${money(cash)}</small></span>
       </li>`;
     }).join('');
+    $('#riders-today').innerHTML = filasRep + filasRep.replace(/<li class="rt-row">/g, '<li class="rt-row" aria-hidden="true">');
 
     const events = all.flatMap((o) => (o.historial || []).map(([e, h]) => ({ o, e, h })))
-      .sort((a, b) => b.h.localeCompare(a.h)).slice(0, 8);
-    $('#activity').innerHTML = events.map(({ o, e, h }) => `
+      .sort((a, b) => b.h.localeCompare(a.h)).slice(0, 12);
+    const filasAct = events.map(({ o, e, h }) => `
       <li class="act"><span class="act-time">${h}</span><i class="dot" data-tono="${ESTADOS[e].tono}"></i>
         <span class="act-text"><b>${o.codigo}</b> · ${o.nombre} — ${ESTADOS[e].label.toLowerCase()}${e === 'no_entregado' && o.motivo ? ` (${MOTIVOS[o.motivo].toLowerCase()})` : ''}</span>
         <span class="act-who">${rider(riderOf(o)).nombre.split(' ')[0]}</span></li>`).join('');
+    $('#activity').innerHTML = filasAct + filasAct.replace(/<li class="act">/g, '<li class="act" aria-hidden="true">');
+    $$('.corredor').forEach((c) => { const n = c.firstElementChild.children.length / 2; c.style.setProperty('--dur', `${Math.max(14, n * 3.2)}s`); });
   }
 
   // ---------- Pedidos ----------
@@ -283,6 +319,68 @@
     } else {
       box.innerHTML = `<div class="rows">${list.map(orderRow).join('')}</div>`;
     }
+  }
+
+  // ---------- Buscador global ----------
+  const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function buscar() {
+    const box = $('#search-results'), q = norm($('#search').value.trim());
+    if (!q) { box.hidden = true; $('#search').setAttribute('aria-expanded', 'false'); return; }
+    const all = store.all();
+    const ped = all.filter((o) => norm(`${o.codigo} ${o.nombre} ${o.direccion} ${comercioDe(o)}`).includes(q)).slice(0, 5);
+    const com = COMERCIOS.filter((c) => norm(`${c.nombre} ${c.categoria} ${c.zona} ${c.contacto}`).includes(q)).slice(0, 4);
+    const rep = RIDERS.filter((r) => norm(`${r.nombre} ${r.vehiculo} ${r.celular}`).includes(q)).slice(0, 4);
+    const grupo = (tit, items) => items.length ? `<p class="sr-tit">${tit}</p>${items.join('')}` : '';
+    box.innerHTML = grupo('Pedidos', ped.map((o) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="pedido" data-id="${o.id}"><span class="sr-ico">${o.codigo.slice(-4)}</span><span><b>${esc(o.nombre)}</b><small>${o.codigo} · ${esc(comercioDe(o))}</small></span>${pill(o.estado)}</button>`))
+      + grupo('Comercios', com.map((c) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="comercio" data-id="${c.id}"><span class="sr-ico">${initials(c.nombre)}</span><span><b>${esc(c.nombre)}</b><small>${esc(c.categoria)} · ${esc(c.zona)}</small></span></button>`))
+      + grupo('Repartidores', rep.map((r) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="repartidor" data-id="${r.id}"><span class="sr-ico rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span><span><b>${esc(r.nombre)}</b><small>${esc(r.vehiculo)}</small></span></button>`))
+      || '<p class="sr-vacio">Sin resultados</p>';
+    box.hidden = false; $('#search').setAttribute('aria-expanded', 'true');
+  }
+  function cerrarBusqueda() { $('#search-results').hidden = true; $('#search').setAttribute('aria-expanded', 'false'); }
+
+  // Ficha de comercio o repartidor: mismo diseño del detalle del pedido
+  function abrirFicha(tipoF, id) {
+    const all = store.all();
+    let tit, sub, extra, lista, datos;
+    if (tipoF === 'comercio') {
+      const c = COMERCIOS.find((x) => x.id === id); if (!c) return;
+      lista = all.filter((o) => comercioDe(o) === c.nombre);
+      tit = c.nombre; sub = `${c.categoria} · ${c.zona}`; extra = `Cliente desde ${c.desde}`;
+      datos = `<div><dt>Contacto</dt><dd>${esc(c.contacto)} · <a href="tel:+57${c.celular}">${phone(c.celular)}</a></dd></div><div><dt>Zona</dt><dd>${esc(c.zona)}</dd></div>`;
+    } else {
+      const r = RIDERS.find((x) => x.id === id); if (!r) return;
+      lista = all.filter((o) => riderOf(o) === r.id);
+      tit = r.nombre; sub = r.vehiculo; extra = 'Repartidor';
+      datos = `<div><dt>Celular</dt><dd><a href="tel:+57${r.celular}">${phone(r.celular)}</a></dd></div><div><dt>Vehículo</dt><dd>${esc(r.vehiculo)}</dd></div>`;
+    }
+    const s2 = resumen(lista);
+    currentId = null;
+    $('#drawer-body').innerHTML = `
+      <div class="ticket">
+        <div class="ticket-top"><span class="pill" data-tono="move">${extra}</span></div>
+        <h2 id="drawer-title">${esc(tit)}</h2>
+        <p class="ticket-sub">${esc(sub)}</p>
+        <div class="ticket-amount"><span>${tipoF === 'comercio' ? 'Recaudado hoy' : 'Cobrado hoy'}</span><b>${money(s2.cobrado)}</b></div>
+      </div>
+      <p class="label">Hoy</p>
+      <dl class="st-datos">
+        ${dato('cielo', 'Pedidos', s2.total)}${dato('menta', 'Efectividad', s2.efectividad === null ? '—' : s2.efectividad + '%')}${dato('coral', 'Novedades', s2.novedades)}
+      </dl>
+      <p class="label">Pedidos de hoy</p>
+      <ul class="rc-list">${lista.map((o) => `<li><button type="button" data-action="open-order" data-id="${o.id}"><span>${o.codigo}</span><b>${esc(o.nombre)}</b>${pill(o.estado)}</button></li>`).join('') || '<li class="muted">Sin pedidos hoy</li>'}</ul>
+      <p class="label">Datos</p>
+      <dl class="data">${datos}</dl>`;
+    const d = $('#drawer');
+    d.dataset.state = 'open'; d.setAttribute('aria-hidden', 'false');
+    $('.drawer-panel', d).focus({ preventScroll: true });
+  }
+
+  // ---------- Tema: claro / oscuro / auto ----------
+  function aplicarTema(t) {
+    document.documentElement.dataset.tema = t;
+    try { localStorage.setItem('loentrego-admin-tema', t); } catch { /* */ }
+    $$('[data-action="tema"]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.tema === t)));
   }
 
   // ---------- Detalle del pedido (panel lateral) ----------
@@ -389,6 +487,13 @@
   // ---------- Repartidores: estadísticas por repartidor ----------
   function renderRepartidores() {
     const all = store.all();
+    const totR = resumen(all);
+    const activosR = RIDERS.filter((r) => all.some((o) => riderOf(o) === r.id)).length;
+    $('#rep-kpis').innerHTML = `
+      <div class="kpi kpi-hero"><span class="kpi-label">Repartidores activos hoy</span><span class="kpi-value">${activosR}<small style="font-size:.5em;opacity:.7"> / ${RIDERS.length}</small></span><span class="kpi-foot">con pedidos en el día</span></div>
+      <div class="kpi" data-tono="cielo"><span class="kpi-label">Pedidos hoy</span><span class="kpi-value">${totR.total}</span><span class="kpi-foot">${totR.curso} en curso</span></div>
+      <div class="kpi" data-tono="menta"><span class="kpi-label">Efectividad</span><span class="kpi-value">${totR.efectividad === null ? '—' : totR.efectividad + '%'}</span><span class="kpi-foot">entregados / cerrados</span></div>
+      <div class="kpi" data-tono="ambar"><span class="kpi-label">Recaudo del día</span><span class="kpi-value" style="font-size:1.6rem">${money(totR.cobrado)}</span><span class="kpi-foot">${money(totR.porCobrar)} por cobrar</span></div>`;
     $('#riders').innerHTML = RIDERS.map((r, idx) => {
       const mine = all.filter((o) => riderOf(o) === r.id);
       const s = resumen(mine);
@@ -560,12 +665,17 @@
       el.setAttribute('aria-expanded', String(open));
     },
     'reset-demo': () => { store.reset(); toast('Datos de prueba restablecidos'); },
+    abrir: (el) => { cerrarBusqueda(); if (el.dataset.tipo === 'pedido') openDrawer(el.dataset.id); else abrirFicha(el.dataset.tipo, el.dataset.id); },
+    tema: (el) => aplicarTema(el.dataset.tema),
     logout: () => { localStorage.removeItem('auth_token'); window.location.href = '../index.html'; },
   };
 
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-action]');
     if (el) { const fn = actions[el.dataset.action]; if (fn) { e.preventDefault(); fn(el, e); } return; }
+    const rp = e.target.closest('[data-res-periodo]');
+    if (rp) { resPeriodo = rp.dataset.resPeriodo; $$('[data-res-periodo]').forEach((b) => b.setAttribute('aria-pressed', String(b === rp))); renderResumen(); countUp($('#view-resumen')); return; }
+    if (!e.target.closest('.search')) cerrarBusqueda();
     // Cerrar menú de cuenta al hacer clic fuera
     const menu = $('#account-menu');
     if (menu.dataset.state === 'open' && !e.target.closest('.account')) {
@@ -582,13 +692,13 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      cerrarBusqueda();
       if ($('#drawer').dataset.state === 'open') closeDrawer();
       $('#account-menu').dataset.state = 'closed';
     }
     // Atajo: "/" enfoca la búsqueda de pedidos
     if (e.key === '/' && !/input|textarea|select/i.test(document.activeElement.tagName)) {
       e.preventDefault();
-      if (view !== 'pedidos') go('pedidos');
       $('#search').focus();
     }
   });
@@ -601,8 +711,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     $$('[data-admin-name]').forEach((el) => { el.textContent = el.dataset.adminName === 'first' ? ADMIN.nombre.split(' ')[0] : ADMIN.nombre; });
     $$('[data-admin-initials]').forEach((el) => { el.textContent = initials(ADMIN.nombre); });
-    $('#today').textContent = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-    $('#search').addEventListener('input', () => { if (view !== 'pedidos') go('pedidos'); else renderPedidos(); });
+    $('#search').addEventListener('input', () => { buscar(); if (view === 'pedidos') renderPedidos(); });
+    $('#search').addEventListener('focus', buscar);
+    aplicarTema(localStorage.getItem('loentrego-admin-tema') || 'auto');
     window.addEventListener('hashchange', () => go(location.hash.slice(1), { push: false }));
     go(location.hash.slice(1) || 'resumen', { push: false });
   });

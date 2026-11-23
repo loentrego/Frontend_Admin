@@ -237,7 +237,12 @@
   const enCobertura = ([lo, la]) => COB_LONLAT.some((r) => dentroAnillo(lo, la, r));
 
   // Un color propio para cada localidad (ninguno se repite): tonos repartidos con el ángulo áureo
-  const colorLocalidad = (i, a = 1) => `hsla(${Math.round((i * 137.508 + 200) % 360)}, 72%, 66%, ${a})`;
+  // Paleta de la marca (fríos, lavandas, menta, lima, ámbar y rosas), alternando familias para que vecinas no se parezcan
+  const PALETA_LOC = ['#8FD3FF', '#FFB547', '#B79CFF', '#5EE0B8', '#FF8FB1', '#C7E356', '#5B8CFF', '#FFD97A', '#E58CF2', '#43C6E8',
+    '#FF9F6E', '#9BE38A', '#9F7BFF', '#FF7A9C', '#2FD3A8', '#F2C14E', '#7FB0FF', '#F7A6D4', '#B5DB2E', '#8C6BFF',
+    '#FFC1A1', '#6FE3E3', '#D6A8FF', '#FFE08A', '#4FA3FF', '#A8EFC9', '#FF9E9E', '#C6B6FF', '#E8F08A', '#9AD0F5', '#FFAEC2'];
+  const hexA = (h, a) => `rgba(${parseInt(h.slice(1, 3), 16)},${parseInt(h.slice(3, 5), 16)},${parseInt(h.slice(5, 7), 16)},${a})`;
+  const colorLocalidad = (i, a = 1) => hexA(PALETA_LOC[i % PALETA_LOC.length], a);
 
   // ---------- Estado ----------
   let zonas = [];        // zonas de reparto (editables)
@@ -617,7 +622,7 @@ $$;
     if (capas.localidades) {
       territorio.forEach((t, i) => {
         trazar(t);
-        ctx.fillStyle = colorLocalidad(i, t.tipo === 'rural' ? 0.1 : zonas.length ? 0.16 : 0.26); ctx.fill('evenodd');
+        if (t.tipo !== 'rural') { ctx.fillStyle = colorLocalidad(i, zonas.length ? 0.18 : 0.3); ctx.fill('evenodd'); }
         ctx.strokeStyle = 'rgba(236,233,248,.26)'; ctx.lineWidth = 0.7; ctx.setLineDash(t.aproximado ? [1.5, 4] : [3, 4]); ctx.stroke(); ctx.setLineDash([]);
       });
     }
