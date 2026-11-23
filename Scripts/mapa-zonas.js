@@ -638,6 +638,7 @@ $$;
     }
     // nombres
     if (capas.localidades) {
+      ctx.font = `600 ${fs}px ${FUENTE_UI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       territorio.forEach((z, i) => {
         const sel = tipo === 'localidades' && i === elegida;
         if (z.tipo === 'rural' && !sel) return;
@@ -725,14 +726,51 @@ $$;
     }
   }
 
+  // Cuántos repartidores le tocan a cada localidad: cada zona (1 repartidor) se reparte
+  // entre las localidades según la fracción de su área que cae en cada una.
+  const cacheReps = new Map();
+  function repartidoresEn(t) {
+    if (!cacheReps.size) {
+      // por cada zona: área que cae en cada localidad, normalizada para que la zona sume 1 repartidor
+      const pc = window.polygonClipping, acum = new Map(territorio.map((x) => [x.id, 0]));
+      if (pc) zonas.forEach((z) => {
+        if (!z.repartidores.length) return;
+        const partes = territorio.map((loc) => {
+          try { const inter = dePC(pc.intersection(aPC(z), aPC(loc))); return inter.length ? areaKm2({ partes: inter }) : 0; } catch { return 0; }
+        });
+        const tot = partes.reduce((x, y) => x + y, 0);
+        if (tot > 0) territorio.forEach((loc, i) => acum.set(loc.id, acum.get(loc.id) + (partes[i] / tot) * z.repartidores.length));
+      });
+      acum.forEach((v, k) => cacheReps.set(k, Math.round(v * 100) / 100));
+      if (!cacheReps.size) cacheReps.set('_', 0);
+    }
+    return cacheReps.get(t.id) || 0;
+  }
+  const fmtReps = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 2 })} repartidor${n === 1 ? '' : 'es'}`;
+
   function pintarLista() {
     const box = $('#mz-lista');
-    $('#mz-lista-titulo').textContent = 'Zonas de reparto';
-    $('#mz-lista-sub').textContent = 'autoasignación';
     const conZonas = riders().map((r) => ({ id: r.id, nombre: r.nombre, color: riderColor(r.id) }))
       .map((g) => ({ ...g, mias: zonas.map((z, i) => [z, i]).filter(([z]) => z.repartidores.includes(g.id)) }))
       .filter((g) => g.mias.length);
-    let html = conZonas.length ? conZonas.map((g) => `<li class="mz-grupo"><div class="mz-grupo-cab"><span class="mz-avatar" style="--c:${g.color}">${iniciales(g.nombre)}</span><b>${esc(g.nombre)}</b><small>${g.mias.length} zona${g.mias.length === 1 ? '' : 's'}</small></div>
+    const porDemanda = capas.calor && zonas.length;
+    $('#mz-lista-titulo').textContent = porDemanda ? 'Zonas por demanda' : 'Zonas de reparto';
+    $('#mz-lista-sub').textContent = porDemanda ? 'pedidos ' + textoPeriodo() : 'autoasignación';
+    let html;
+    if (porDemanda) {
+      const st = zonas.map(statsReparto);
+      const max = Math.max(1, ...st.map((x) => x.pedidos));
+      html = zonas.map((_, i) => i).sort((x, y) => st[y].pedidos - st[x].pedidos).map((i) => {
+        const z = zonas[i], s2 = st[i], act = tipo === 'reparto' && elegida === i;
+        const nivel = NIVELES.find((n) => s2.pedidos / factor() >= n.min);
+        const rid = z.repartidores[0];
+        return `<li><button type="button" class="mz-fila${act ? ' activa' : ''}" data-mz-zona="${i}" aria-pressed="${act}">
+          <span class="mz-fila-top"><b>${esc(z.nombre)}</b>${nivelPill(nivel)}</span>
+          <span class="mz-barra"><i style="--w:${(s2.pedidos / max) * 100}%;--c:${nivel.color}"></i></span>
+          <span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.km2.toFixed(1)} km²</span>${rid ? `<span><i class="mz-punto" style="--c:${riderColor(rid)}"></i>${esc(riderNombre(rid).split(' ')[0])}</span>` : ''}</span>
+        </button></li>`;
+      }).join('');
+    } else html = conZonas.length ? conZonas.map((g) => `<li class="mz-grupo"><div class="mz-grupo-cab"><span class="mz-avatar" style="--c:${g.color}">${iniciales(g.nombre)}</span><b>${esc(g.nombre)}</b><small>${g.mias.length} zona${g.mias.length === 1 ? '' : 's'}</small></div>
         <ul>${g.mias.map(([z, i]) => { const s2 = statsReparto(z); const act = tipo === 'reparto' && elegida === i; return `<li><button type="button" class="mz-fila mini${act ? ' activa' : ''}" data-mz-zona="${i}" aria-pressed="${act}"><span class="mz-fila-top"><b>${esc(z.nombre)}</b><span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.km2.toFixed(1)} km²</span></span></span></button></li>`; }).join('')}</ul></li>`).join('')
       : `<li class="mz-vacio mz-vacio-zonas">Aún no hay zonas de reparto. Cuando tengas repartidores, créalas con <b>+ Nueva zona</b>.</li>`;
     if (capas.localidades && territorio.length) {
@@ -744,7 +782,7 @@ $$;
         return `<li><button type="button" class="mz-fila${act ? ' activa' : ''}" data-mz-loc="${i}" aria-pressed="${act}">
           <span class="mz-fila-top"><b>${esc(t.nombre)}</b>${t.aproximado ? '<span class="mz-aprox" title="Límite aproximado">aprox.</span>' : ''}${nivelPill(s2.nivel)}</span>
           <span class="mz-barra"><i style="--w:${(s2.pedidos / max) * 100}%;--c:${s2.nivel.color}"></i></span>
-          <span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.tiempo} min</span><span>${s2.cubre.length ? s2.cubre.length + ' zona' + (s2.cubre.length > 1 ? 's' : '') : 'sin zona'}</span></span>
+          <span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.tiempo} min</span><span>${fmtReps(repartidoresEn(t))}</span></span>
         </button></li>`;
       }).join('');
     }
@@ -844,7 +882,7 @@ $$;
 
   function pintarPaneles() { pintarResumen(); pintarLista(); pintarDetalle(); }
   let generarPendiente = 0;
-  function huboCambio() { cacheCruce.clear(); pintarResumen(); pintarLista(); clearTimeout(generarPendiente); generarPendiente = setTimeout(arrancar, 50); }
+  function huboCambio() { cacheCruce.clear(); cacheReps.clear(); pintarResumen(); pintarLista(); clearTimeout(generarPendiente); generarPendiente = setTimeout(arrancar, 50); }
   function cambiarTipo(t) {
     tipo = t; elegida = null; encima = null;
 
@@ -981,10 +1019,33 @@ $$;
     else { tipo = o.t; elegida = o.i; }
     pintarLista(); pintarDetalle();
   }
+  // Zoom animado: se interpola hacia el destino en ~320 ms (suavizado)
+  let anim = null;
+  function limitar(z, px, py) {
+    if (z <= 1) return [1, 0, 0];
+    return [z, Math.min(W * 0.4, Math.max(W * (0.6 - z), px)), Math.min(H * 0.4, Math.max(H * (0.6 - z), py))];
+  }
+  function animarA(nz, npx, npy, ms = 320) {
+    const [z1, x1, y1] = limitar(nz, npx, npy);
+    anim = { z0: zoom, x0: panX, y0: panY, z1, x1, y1, t0: performance.now(), ms };
+    arrancar();
+  }
+  function pasoAnim(now) {
+    if (!anim) return false;
+    const k = Math.min(1, (now - anim.t0) / anim.ms), e = 1 - Math.pow(1 - k, 3);
+    // interpolación geométrica del zoom: se siente uniforme al acercar y alejar
+    zoom = anim.z0 * Math.pow(anim.z1 / anim.z0, e);
+    const f = (zoom - anim.z0) / ((anim.z1 - anim.z0) || 1);
+    panX = anim.x0 + (anim.x1 - anim.x0) * (anim.z1 === anim.z0 ? e : f);
+    panY = anim.y0 + (anim.y1 - anim.y0) * (anim.z1 === anim.z0 ? e : f);
+    callesSucias = true;
+    if (k >= 1) { zoom = anim.z1; panX = anim.x1; panY = anim.y1; anim = null; }
+    return true;
+  }
   function acercar(f, x = W / 2, y = H / 2) {
-    const nz = Math.max(1, Math.min(14, zoom * f));
-    panX = x - (x - panX) * (nz / zoom); panY = y - (y - panY) * (nz / zoom);
-    zoom = nz; limitarVista(); callesSucias = true; arrancar();
+    const base = anim ? anim.z1 : zoom, bx0 = anim ? anim.x1 : panX, by0 = anim ? anim.y1 : panY;
+    const nz = Math.max(1, Math.min(14, base * f));
+    animarA(nz, x - (x - bx0) * (nz / base), y - (y - by0) * (nz / base), 260);
   }
   function limitarVista() {
     if (zoom <= 1) { zoom = 1; panX = 0; panY = 0; return; }
@@ -992,13 +1053,13 @@ $$;
     panY = Math.min(H * 0.4, Math.max(H * (0.6 - zoom), panY));
   }
   function encuadrar(z) {
-    zoom = 1; panX = 0; panY = 0;
+    // medir en la vista sin zoom
     const xs = [], ys = [];
-    z.partes.forEach((r) => r.forEach(([lo, la]) => { const [x, y] = aPx(lo, la); xs.push(x); ys.push(y); }));
+    z.partes.forEach((r) => r.forEach(([lo, la]) => { const sx = bx + (lo - LON[0]) * KX * esc0, sy = by + (LAT[1] - la) * esc0; xs.push(sx); ys.push(sy); }));
     const w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
     const nz = Math.max(1, Math.min(6, Math.min(W / (w * 1.6 || 1), H / (h * 1.6 || 1))));
     const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
-    zoom = nz; panX = W / 2 - cx * nz; panY = H / 2 - cy * nz; limitarVista(); callesSucias = true; arrancar();
+    animarA(nz, W / 2 - cx * nz, H / 2 - cy * nz);
   }
   function borrarVertice(pi, vi) {
     const ring = zonas[elegida].partes[pi];
@@ -1043,7 +1104,7 @@ $$;
       if (capa) {
         capas[capa.dataset.capa] = !capas[capa.dataset.capa];
         capa.setAttribute('aria-pressed', capas[capa.dataset.capa]);
-        if (capa.dataset.capa === 'calor') pintarCalor();
+        if (capa.dataset.capa === 'calor') { pintarCalor(); pintarLista(); }
         if (capa.dataset.capa === 'localidades') { if (tipo === 'localidades') { tipo = 'reparto'; elegida = null; } pintarLista(); pintarDetalle(); }
         arrancar(); return;
       }
@@ -1081,7 +1142,7 @@ $$;
       else if (acc === 'cerrar-dibujo') cerrarDibujo();
       else if (acc === 'acercar') acercar(1.4);
       else if (acc === 'alejar') acercar(1 / 1.4);
-      else if (acc === 'encuadrar') { zoom = 1; panX = 0; panY = 0; callesSucias = true; arrancar(); }
+      else if (acc === 'encuadrar') { animarA(1, 0, 0); }
       else if (acc === 'exportar') { descargar('zonas-reparto-loentrego.geojson', JSON.stringify(aGeoJSON(), null, 2), 'application/geo+json'); aviso(`Zonas de reparto descargadas (${zonas.length}) · GeoJSON WGS84.`); }
       else if (acc === 'exportar-localidades') { descargar('localidades-loentrego.geojson', JSON.stringify(territorioGeoJSON(), null, 2), 'application/geo+json'); aviso(`Localidades descargadas (${territorio.length}) · GeoJSON WGS84.`); }
       else if (acc === 'sql') { descargar('zonas-loentrego.sql', aSQL(), 'application/sql'); aviso('SQL para PostGIS descargado: zonas de reparto, localidades, índices y funciones <code>zona_para_punto</code> y <code>localidad_para_punto</code>.'); }
@@ -1157,7 +1218,7 @@ $$;
 
   // ---------- Montaje ----------
   let montado = false, raf = 0;
-  function bucle() { raf = 0; if (!canvas.isConnected || canvas.offsetParent === null || document.hidden) return; cuadro(); if (arrastre || paneo) raf = requestAnimationFrame(bucle); }
+  function bucle(now) { raf = 0; if (!canvas.isConnected || canvas.offsetParent === null || document.hidden) return; const animando = pasoAnim(now || performance.now()); cuadro(); if (arrastre || paneo || animando) raf = requestAnimationFrame(bucle); }
   function arrancar() { if (canvas && !raf) raf = requestAnimationFrame(bucle); }   // se dibuja solo cuando algo cambia
 
   function montar() {
