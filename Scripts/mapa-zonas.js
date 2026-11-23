@@ -236,6 +236,9 @@
   const COB_LONLAT = Object.values(COBERTURA).map((pol) => pol.map(([la, lo]) => [lo, la]));
   const enCobertura = ([lo, la]) => COB_LONLAT.some((r) => dentroAnillo(lo, la, r));
 
+  // Un color propio para cada localidad (ninguno se repite): tonos repartidos con el ángulo áureo
+  const colorLocalidad = (i, a = 1) => `hsla(${Math.round((i * 137.508 + 200) % 360)}, 72%, 66%, ${a})`;
+
   // ---------- Estado ----------
   let zonas = [];        // zonas de reparto (editables)
   let territorio = [];   // localidades (solo lectura)
@@ -612,10 +615,9 @@ $$;
     ctx.font = `600 ${fs}px ${FUENTE_UI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
     if (capas.localidades) {
-      territorio.forEach((t) => {
-        const n = statsLocalidad(t).nivel;
+      territorio.forEach((t, i) => {
         trazar(t);
-        ctx.fillStyle = `rgba(${hex2rgb(n.color)},${t.tipo === 'rural' ? 0.06 : zonas.length ? 0.12 : 0.2})`; ctx.fill('evenodd');
+        ctx.fillStyle = colorLocalidad(i, t.tipo === 'rural' ? 0.1 : zonas.length ? 0.16 : 0.26); ctx.fill('evenodd');
         ctx.strokeStyle = 'rgba(236,233,248,.26)'; ctx.lineWidth = 0.7; ctx.setLineDash(t.aproximado ? [1.5, 4] : [3, 4]); ctx.stroke(); ctx.setLineDash([]);
       });
     }
@@ -780,7 +782,7 @@ $$;
       html += `<li class="mz-sep"><b>Localidades por demanda</b><small>pedidos ${textoPeriodo()}</small></li>` + orden.map((i) => {
         const t = territorio[i], s2 = st[i], act = tipo === 'localidades' && elegida === i;
         return `<li><button type="button" class="mz-fila${act ? ' activa' : ''}" data-mz-loc="${i}" aria-pressed="${act}">
-          <span class="mz-fila-top"><b>${esc(t.nombre)}</b>${t.aproximado ? '<span class="mz-aprox" title="Límite aproximado">aprox.</span>' : ''}${nivelPill(s2.nivel)}</span>
+          <span class="mz-fila-top"><b><i class="mz-punto" style="--c:${colorLocalidad(i)}"></i>${esc(t.nombre)}</b>${t.aproximado ? '<span class="mz-aprox" title="Límite aproximado">aprox.</span>' : ''}${nivelPill(s2.nivel)}</span>
           <span class="mz-barra"><i style="--w:${(s2.pedidos / max) * 100}%;--c:${s2.nivel.color}"></i></span>
           <span class="mz-fila-datos"><span>${fmt(s2.pedidos)} pedidos</span><span>${s2.tiempo} min</span><span>${fmtReps(repartidoresEn(t))}</span></span>
         </button></li>`;
