@@ -22,7 +22,7 @@
   const FUENTE_UI = 'Poppins, system-ui, sans-serif';
 
   // Paleta de datos (marca + acentos del manual): un color por repartidor
-  const COLORES_REP = ['#8FD3FF', '#FFB547', '#FF8FB1', '#7EE0C3', '#C3B9FF', '#B5DB2E', '#FF9F6E', '#6FA8FF'];
+  const COLORES_REP = ['#8FD3FF', '#FFB547', '#FF8FB1', '#7EE0C3', '#C3B9FF', '#FF9F6E', '#6FA8FF', '#F2DE6B'];
   // Demanda (localidades): de tranquila a caliente
   const NIVELES = [
     { id: 'caliente', label: 'Caliente', min: 55, color: '#FF6B83' },
@@ -63,11 +63,11 @@
     { id: 'centro', nombre: 'Centro · Teusaquillo', municipio: 'bogota', centro: [4.610, -74.075], repartidores: ['r1'] },
     { id: 'puente', nombre: 'Puente Aranda', municipio: 'bogota', centro: [4.625, -74.112], repartidores: ['r3'] },
     { id: 'kennedy', nombre: 'Kennedy', municipio: 'bogota', centro: [4.628, -74.155], repartidores: ['r3'] },
-    { id: 'bosa', nombre: 'Bosa', municipio: 'bogota', centro: [4.605, -74.188], repartidores: [] },
-    { id: 'sur', nombre: 'Tunjuelito · C. Bolívar', municipio: 'bogota', centro: [4.565, -74.140], repartidores: [] },
-    { id: 'usme', nombre: 'Usme · San Cristóbal', municipio: 'bogota', centro: [4.525, -74.100], repartidores: [] },
+    { id: 'bosa', nombre: 'Bosa', municipio: 'bogota', centro: [4.605, -74.188], repartidores: ['r4'] },
+    { id: 'sur', nombre: 'Tunjuelito · C. Bolívar', municipio: 'bogota', centro: [4.565, -74.140], repartidores: ['r5'] },
+    { id: 'usme', nombre: 'Usme · San Cristóbal', municipio: 'bogota', centro: [4.525, -74.100], repartidores: ['r6'] },
     { id: 'funza', nombre: 'Funza', municipio: 'funza', centro: [4.716, -74.214], repartidores: ['r2'] },
-    { id: 'soacha', nombre: 'Soacha', municipio: 'soacha', centro: [4.585, -74.230], repartidores: [] },
+    { id: 'soacha', nombre: 'Soacha', municipio: 'soacha', centro: [4.585, -74.230], repartidores: ['r7'] },
   ];
 
   // ---------- Utilidades ----------
@@ -95,9 +95,10 @@
     }
     return c;
   };
-  const dentroZona = (lon, lat, z) => z.partes.some((ring) => dentroAnillo(lon, lat, ring));
+  // par/impar: un anillo dentro de otro de la misma zona es un hueco
+  const dentroZona = (lon, lat, z) => z.partes.reduce((n, ring) => n + (dentroAnillo(lon, lat, ring) ? 1 : 0), 0) % 2 === 1;
   const areaFirmada = (ring) => { let a = 0; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]); return a / 2; };
-  const areaKm2 = (z) => z.partes.reduce((s, r) => s + Math.abs(areaFirmada(r)), 0) * 111.32 * 111.32 * KX;
+  const areaKm2 = (z) => poligonos(z).reduce((s, p) => s + Math.abs(areaFirmada(p[0])) - p.slice(1).reduce((h, r) => h + Math.abs(areaFirmada(r)), 0), 0) * 111.32 * 111.32 * KX;
   function centroide(ring) {
     let a = 0, cx = 0, cy = 0;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -152,6 +153,46 @@
     return false;
   }
 
+  // Agrupa los anillos de una zona en polígonos [exterior, ...huecos]
+  function poligonos(z) {
+    const info = z.partes.map((r, i) => ({ r, i, a: Math.abs(areaFirmada(r)), dentroDe: z.partes.filter((o, j) => j !== i && dentroAnillo(r[0][0], r[0][1], o)).length }));
+    const ext = info.filter((x) => x.dentroDe % 2 === 0), hue = info.filter((x) => x.dentroDe % 2 === 1);
+    const polis = ext.map((e) => [e.r]);
+    hue.forEach((h) => {
+      const cand = ext.map((e, k) => [e, k]).filter(([e]) => dentroAnillo(h.r[0][0], h.r[0][1], e.r)).sort((a, b) => a[0].a - b[0].a)[0];
+      if (cand) polis[cand[1]].push(h.r);
+    });
+    return polis;
+  }
+  const cerrado = (r) => { const c = r.map((p) => [p[0], p[1]]); c.push([c[0][0], c[0][1]]); return c; };
+  const aPC = (z) => poligonos(z).map((p) => p.map(cerrado));
+  // MultiPolygon de polygon-clipping -> anillos sin repetir el primer punto, sin migajas
+  function dePC(mp) {
+    const partes = [];
+    mp.forEach((poli) => poli.forEach((ring) => {
+      let r = ring.slice(0, -1).map(([x, y]) => [r6(x), r6(y)]);
+      r = r.filter((p, i) => i === 0 || p[0] !== r[i - 1][0] || p[1] !== r[i - 1][1]);
+      if (r.length >= 3 && Math.abs(areaFirmada(r)) > 2e-9) partes.push(r);
+    }));
+    return partes;
+  }
+  // La zona "ganadora" se queda con su área: a las demás se les resta (se parten y se adaptan)
+  function recortarVecinas(ganadora) {
+    const pc = window.polygonClipping;
+    if (!pc) return [];
+    const g = aPC(ganadora), eliminadas = [];
+    zonas = zonas.filter((z) => {
+      if (z === ganadora) return true;
+      try {
+        const res = dePC(pc.difference(aPC(z), g));
+        if (!res.length) { eliminadas.push(z); return false; }
+        z.partes = res;
+      } catch { /* geometría rara: se deja igual */ }
+      return true;
+    });
+    return eliminadas;
+  }
+
   // Zonas de reparto iniciales: Voronoi de los centros recortado al municipio
   function recortarSemiplano(ring, ci, cj) {
     const mx = ((ci[0] + cj[0]) / 2) * KX, my = (ci[1] + cj[1]) / 2, nx = (cj[0] - ci[0]) * KX, ny = cj[1] - ci[1];
@@ -202,7 +243,12 @@
       if (d && Array.isArray(d.zonas) && d.zonas.length) {
         zonas = d.zonas;
         // las zonas de reparto no llevan nombre de localidad
-        zonas.forEach((z) => { const k = SEMILLAS.findIndex((x) => x.id === z.id && x.nombre === z.nombre); if (k >= 0) z.nombre = `Zona ${k + 1}`; });
+        zonas.forEach((z) => {
+          const k = SEMILLAS.findIndex((x) => x.id === z.id);
+          if (k >= 0 && SEMILLAS[k].nombre === z.nombre) z.nombre = `Zona ${k + 1}`;
+          if (k >= 0 && !z.repartidores.length) z.repartidores = [...SEMILLAS[k].repartidores];   // ninguna zona sin repartidor
+          z.repartidores = z.repartidores.slice(0, 1);
+        });
         return;
       }
     } catch { /* datos dañados */ }
@@ -219,7 +265,11 @@
   // ---------- GeoJSON ----------
   const cerrar = (ring) => { const r = ring.map(([x, y]) => [r6(x), r6(y)]); const a = r[0], b = r[r.length - 1]; if (a[0] !== b[0] || a[1] !== b[1]) r.push([...a]); return r; };
   const antihorario = (ring) => (areaFirmada(ring) < 0 ? [...ring].reverse() : ring);
-  const geometria = (z) => { const an = z.partes.map((r) => cerrar(antihorario(r))); return an.length === 1 ? { type: 'Polygon', coordinates: [an[0]] } : { type: 'MultiPolygon', coordinates: an.map((r) => [r]) }; };
+  const horario = (ring) => (areaFirmada(ring) > 0 ? [...ring].reverse() : ring);
+  const geometria = (z) => {
+    const polis = poligonos(z).map((p) => [cerrar(antihorario(p[0])), ...p.slice(1).map((h) => cerrar(horario(h)))]);
+    return polis.length === 1 ? { type: 'Polygon', coordinates: polis[0] } : { type: 'MultiPolygon', coordinates: polis };
+  };
   function aGeoJSON() {
     return {
       type: 'FeatureCollection', name: 'zonas_reparto_loentrego',
@@ -231,7 +281,7 @@
   }
   function partesDe(g) {
     const polis = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
-    return polis.map((p) => { const r = (p[0] || []).map((c) => [r6(+c[0]), r6(+c[1])]); if (r.length > 1 && r[0][0] === r.at(-1)[0] && r[0][1] === r.at(-1)[1]) r.pop(); return r; }).filter((r) => r.length >= 3);
+    return polis.flatMap((p) => p.map((ring) => { const r = ring.map((c) => [r6(+c[0]), r6(+c[1])]); if (r.length > 1 && r[0][0] === r.at(-1)[0] && r[0][1] === r.at(-1)[1]) r.pop(); return r; })).filter((r) => r.length >= 3);
   }
   function deGeoJSON(gj) {
     const avisos = [];
@@ -249,10 +299,11 @@
       const partes = [];
       (polis || []).forEach((poli) => {
         if (!Array.isArray(poli) || !poli.length) return;
-        if (poli.length > 1) avisos.push(`"${p.nombre || p.name || n + 1}": tenía huecos internos; se conservó el borde exterior.`);
-        const ring = (poli[0] || []).filter(valido).map((c) => [r6(+c[0]), r6(+c[1])]);
-        if (ring.length > 1 && ring[0][0] === ring.at(-1)[0] && ring[0][1] === ring.at(-1)[1]) ring.pop();
-        if (ring.length >= 3) partes.push(ring);
+        poli.forEach((anillo) => {
+          const ring = (anillo || []).filter(valido).map((c) => [r6(+c[0]), r6(+c[1])]);
+          if (ring.length > 1 && ring[0][0] === ring.at(-1)[0] && ring[0][1] === ring.at(-1)[1]) ring.pop();
+          if (ring.length >= 3) partes.push(ring);
+        });
       });
       if (!partes.length) { avisos.push(`Elemento ${n + 1}: sin coordenadas válidas, se omitió.`); return; }
       const [x, y] = partes[0][0];
@@ -264,7 +315,7 @@
       salida.push({
         id, nombre: String(p.nombre || p.name || `Zona ${n + 1}`),
         municipio: MUNICIPIOS[mun] ? mun : (Object.keys(MUNICIPIOS).find((k) => MUNICIPIOS[k].toLowerCase() === mun) || 'bogota'),
-        repartidores: Array.isArray(p.repartidores) ? p.repartidores.map(String) : [],
+        repartidores: Array.isArray(p.repartidores) ? p.repartidores.map(String).slice(0, 1) : [],
         capacidad: Number(p.capacidad_diaria ?? p.capacidad) || PEDIDOS_POR_REPARTIDOR, prioridad: Number(p.prioridad) || 0, partes,
       });
     });
@@ -441,7 +492,7 @@ $$;
   let modo = 'ver';
   let elegida = null;        // índice en la lista del tipo activo
   let encima = null;
-  let dibujo = [], prueba = null, cursor = null, callesSucias = true, arrastre = null, paneo = null;
+  let dibujo = [], prueba = null, cursor = null, callesSucias = true, arrastre = null, paneo = null, repNuevo = null;
   const capaCalles = document.createElement('canvas');
   const capaCalor = document.createElement('canvas');
   let puntos = [];
@@ -454,10 +505,15 @@ $$;
     W = r.width; H = r.height;
     canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    const pad = 18;
-    esc0 = Math.min((W - pad * 2) / ((LON[1] - LON[0]) * KX), (H - pad * 2) / (LAT[1] - LAT[0]));
-    bx = (W - (LON[1] - LON[0]) * KX * esc0) / 2;
-    by = (H - (LAT[1] - LAT[0]) * esc0) / 2;
+    // encuadre en el espacio libre que dejan los menús flotantes
+    const ancho = W > 900;
+    const panel = document.querySelector('.mz-panel');
+    const pl = ancho ? 24 : 12, pr = ancho ? (panel ? panel.offsetWidth : 360) + 40 : 12;
+    const pt = ancho ? 150 : (W < 640 ? 200 : 250), pb = ancho ? 60 : Math.round(H * 0.32);
+    const spanX = (LON[1] - LON[0]) * KX, spanY = LAT[1] - LAT[0];
+    esc0 = Math.min((W - pl - pr) / spanX, (H - pt - pb) / spanY);
+    bx = pl + (W - pl - pr - spanX * esc0) / 2;
+    by = pt + (H - pt - pb - spanY * esc0) / 2;
     callesSucias = true;
     pintarCalor();
   }
@@ -631,6 +687,7 @@ $$;
   };
 
   function pintarResumen() {
+    if (!$('#mz-kpis')) return;
     if (tipo === 'localidades') {
       const st = territorio.map(statsLocalidad);
       const total = st.reduce((s, x) => s + x.pedidos, 0);
@@ -685,11 +742,18 @@ $$;
 
   function pintarDetalle() {
     const box = $('#mz-detalle');
+    $('#view-mapa').dataset.detalle = modo === 'dibujar' || (elegida !== null && lista()[elegida]) ? 'si' : 'no';
     if (modo === 'dibujar') {
-      box.innerHTML = `<header class="mz-det-cab"><div><small>Nueva zona de reparto</small><h3>Dibuja el polígono</h3></div></header>
-        <ol class="mz-pasos"><li>Toca el mapa para poner cada vértice; se pega a los vértices de las zonas vecinas.</li><li>Para cerrar, toca el primer punto, haz doble clic o pulsa <kbd>Enter</kbd>.</li><li><kbd>Esc</kbd> cancela · <kbd>Retroceso</kbd> quita el último punto.</li></ol>
-        <p class="mz-coord-dato">${dibujo.length} punto${dibujo.length === 1 ? '' : 's'}</p>
-        <div class="mz-acciones"><button type="button" class="btn-ghost" data-mz-accion="deshacer-punto" ${dibujo.length ? '' : 'disabled'}>Quitar último</button><button type="button" class="mz-btn-lima" data-mz-accion="cerrar-dibujo" ${dibujo.length > 2 ? '' : 'disabled'}>Cerrar zona</button></div>`;
+      const listo = repNuevo && dibujo.length > 2;
+      box.innerHTML = `<header class="mz-det-cab"><div><small>Nueva zona de reparto</small><h3>${repNuevo ? 'Dibuja la zona' : '¿Para qué repartidor?'}</h3></div>
+          <button type="button" class="mz-cerrar" data-mz-accion="cancelar-dibujo" aria-label="Cancelar">×</button></header>
+        <p class="mz-paso"><span>1</span>Elige el repartidor</p>
+        <div class="mz-reps-elegir" role="radiogroup" aria-label="Repartidor de la zona nueva">
+          ${riders().map((r) => `<button type="button" role="radio" class="mz-rep-op" data-mz-rep="${esc(r.id)}" aria-checked="${repNuevo === r.id}" style="--c:${riderColor(r.id)}"><span class="mz-avatar" style="--c:${riderColor(r.id)}">${iniciales(r.nombre)}</span>${esc(r.nombre)}</button>`).join('')}
+        </div>
+        <p class="mz-paso${repNuevo ? '' : ' apagado'}"><span>2</span>Toca el mapa para marcar el contorno</p>
+        <p class="mz-vacio">${dibujo.length ? `${dibujo.length} punto${dibujo.length === 1 ? '' : 's'} marcados.` : 'Cada toque agrega una esquina.'} Para terminar toca el primer punto o pulsa <kbd>Enter</kbd>. Las zonas de alrededor se recortan solas para que no queden encima.</p>
+        <div class="mz-acciones"><button type="button" class="btn-ghost" data-mz-accion="deshacer-punto" ${dibujo.length ? '' : 'disabled'}>Quitar último</button><button type="button" class="mz-btn-lima" data-mz-accion="cerrar-dibujo" ${listo ? '' : 'disabled'}>Crear zona</button></div>`;
       return;
     }
     if (modo === 'probar') {
@@ -712,7 +776,7 @@ $$;
         ? `<p class="mz-vacio">Toca una localidad en el mapa o en la lista para ver su demanda y qué repartidores la cubren.</p>`
         : modo === 'editar'
           ? `<p class="mz-vacio">Toca una zona para editarla. Arrastra un vértice para moverlo (los compartidos con zonas vecinas se mueven juntos; con <kbd>Alt</kbd> solo ese), arrastra un punto medio para agregar uno y haz doble clic en un vértice para borrarlo.</p>`
-          : `<p class="mz-vacio">Cada color es un repartidor. Toca una zona para ver su detalle o usa <b>Editar</b> para cambiar sus límites.</p>`;
+          : `<p class="mz-vacio">Cada color es un repartidor.</p>`;
       return;
     }
     if (tipo === 'localidades') {
@@ -734,23 +798,16 @@ $$;
     }
     const z = zonas[elegida], s = statsReparto(z);
     if (modo === 'editar') {
-      const verts = z.partes.map((ring, pi) => ring.map((v, vi) => `<tr><td>${z.partes.length > 1 ? pi + 1 + '.' : ''}${vi + 1}</td>
-          <td><input aria-label="Latitud del vértice ${vi + 1}" data-mz-vert="${pi},${vi},1" value="${v[1]}" inputmode="decimal"></td>
-          <td><input aria-label="Longitud del vértice ${vi + 1}" data-mz-vert="${pi},${vi},0" value="${v[0]}" inputmode="decimal"></td>
-          <td><button type="button" class="mz-x" data-mz-accion="borrar-vertice" data-v="${pi},${vi}" aria-label="Borrar vértice ${vi + 1}" ${ring.length <= 3 ? 'disabled' : ''}>×</button></td></tr>`).join('')).join('');
-      box.innerHTML = `<header class="mz-det-cab"><div><small>Editando · id <code>${esc(z.id)}</code></small><h3>${esc(z.nombre)}</h3></div>
+      box.innerHTML = `<header class="mz-det-cab"><div><small>Editando zona</small><h3>${esc(z.nombre)}</h3></div>
           <button type="button" class="mz-cerrar" data-mz-accion="cerrar" aria-label="Cerrar">×</button></header>
+        <p class="mz-vacio">Arrastra los puntos blancos para mover el borde, o los pequeños para agregar uno. Doble clic en un punto lo quita. Las zonas vecinas se adaptan solas.</p>
         <form class="mz-form" data-mz-form="zona">
-          <label class="ancho"><span>Nombre</span><input name="nombre" value="${esc(z.nombre)}" required maxlength="60"></label>
-          <label><span>Municipio</span><select name="municipio">${Object.entries(MUNICIPIOS).map(([k, v]) => `<option value="${k}" ${k === z.municipio ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
-          <label><span>Prioridad</span><input name="prioridad" type="number" step="1" value="${z.prioridad || 0}" title="Si dos zonas se solapan, gana la de mayor prioridad"></label>
-          <label class="ancho"><span>Pedidos al día por repartidor</span><input name="capacidad" type="number" min="1" step="1" value="${z.capacidad || PEDIDOS_POR_REPARTIDOR}"></label>
-          <fieldset class="ancho"><legend>Repartidor de la zona</legend>
-            ${riders().map((r) => `<label class="mz-check" style="--c:${riderColor(r.id)}"><input type="checkbox" name="rep" value="${esc(r.id)}" ${z.repartidores.includes(r.id) ? 'checked' : ''}><i></i> ${esc(r.nombre)}</label>`).join('') || '<small>No hay repartidores registrados.</small>'}
+          <label class="ancho"><span>Nombre</span><input name="nombre" value="${esc(z.nombre)}" required maxlength="40"></label>
+          <fieldset class="ancho"><legend>Repartidor</legend>
+            <div class="mz-reps-elegir">${riders().map((r) => `<label class="mz-rep-op" style="--c:${riderColor(r.id)}"><input type="radio" name="rep" value="${esc(r.id)}" ${z.repartidores[0] === r.id ? 'checked' : ''}><span class="mz-avatar" style="--c:${riderColor(r.id)}">${iniciales(r.nombre)}</span>${esc(r.nombre)}</label>`).join('')}</div>
           </fieldset>
+          <label class="ancho"><span>Pedidos al día que puede hacer</span><input name="capacidad" type="number" min="1" step="1" value="${z.capacidad || PEDIDOS_POR_REPARTIDOR}"></label>
         </form>
-        <details class="mz-vertices"><summary>Vértices (${z.partes.reduce((n, r) => n + r.length, 0)}) · lat / lon WGS84</summary>
-          <div class="mz-tabla"><table><thead><tr><th>#</th><th>Latitud</th><th>Longitud</th><th></th></tr></thead><tbody>${verts}</tbody></table></div></details>
         <div class="mz-acciones"><button type="button" class="btn-ghost danger" data-mz-accion="borrar-zona">Eliminar zona</button></div>`;
       return;
     }
@@ -768,7 +825,7 @@ $$;
         <button type="button" class="mz-cerrar" data-mz-accion="cerrar" aria-label="Cerrar detalle">×</button></header>
       <p class="mz-res-reps">${z.repartidores.length ? z.repartidores.map((id) => `<span class="mz-chip-rep" style="--c:${riderColor(id)}">${esc(riderNombre(id))}</span>`).join('') : '<i class="mz-sin">Sin repartidor asignado</i>'}</p>
       <dl class="mz-det-datos">
-        <div data-tono="cielo"><dt>Pedidos</dt><dd>${fmt(s.pedidos)}</dd></div><div data-tono="lavanda"><dt>Área</dt><dd>${s.km2.toFixed(1)}<small> km²</small></dd></div><div data-tono="ambar"><dt>Prioridad</dt><dd>${z.prioridad || 0}</dd></div>
+        <div data-tono="cielo"><dt>Pedidos</dt><dd>${fmt(s.pedidos)}</dd></div><div data-tono="lavanda"><dt>Área</dt><dd>${s.km2.toFixed(1)}<small> km²</small></dd></div><div data-tono="ambar"><dt>Localidades</dt><dd>${territorio.filter((t) => muestraCruza(z, t)).length}</dd></div>
       </dl>
       ${consejo}
       <p class="mz-sub-titulo">Localidades que cubre</p>
@@ -788,7 +845,7 @@ $$;
   }
   function cambiarModo(m) {
     modo = m;
-    if (m !== 'dibujar') dibujo = [];
+    if (m !== 'dibujar') { dibujo = []; repNuevo = null; }
     if (m !== 'probar') prueba = null;
     $$('#mz-modo button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mzModo === m));
     const v = $('#view-mapa'); v.dataset.modo = m; v.dataset.tipo = tipo;
@@ -851,7 +908,6 @@ $$;
       const [x, y] = posEvento(e);
       const [lon, lat] = aGeo(x, y);
       cursor = [lon, lat];
-      $('#mz-cursor').textContent = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
       arrancar();
       if (arrastre) {
         const iman = imanVertice(x, y, arrastre);
@@ -878,7 +934,12 @@ $$;
     });
     canvas.addEventListener('pointerup', (e) => {
       const [x, y] = posEvento(e);
-      if (arrastre) { arrastre = null; guardar(); pintarDetalle(); return; }
+      if (arrastre) {
+        arrastre = null;
+        const z = zonas[elegida];
+        if (z) { const q = recortarVecinas(z); elegida = zonas.indexOf(z); if (q.length) aviso(`Se eliminaron zonas que quedaron cubiertas: ${q.map((x) => esc(x.nombre)).join(', ')}.`); }
+        guardar(); pintarDetalle(); return;
+      }
       if (paneo && !paneo.movido) clic(x, y);
       paneo = null;
     });
@@ -895,6 +956,7 @@ $$;
   function clic(x, y) {
     const [lon, lat] = aGeo(x, y);
     if (modo === 'dibujar') {
+      if (!repNuevo) { aviso('Primero elige el repartidor de la zona.', 'error'); return; }
       if (dibujo.length > 2) { const [fx, fy] = aPx(...dibujo[0]); if (Math.hypot(fx - x, fy - y) < 10) { cerrarDibujo(); return; } }
       const iman = imanVertice(x, y);
       dibujo.push(iman ? [...iman] : [r6(lon), r6(lat)]);
@@ -932,16 +994,20 @@ $$;
     ring.splice(vi, 1); guardar(); pintarDetalle();
   }
   function cerrarDibujo() {
-    if (dibujo.length < 3) { aviso('Pon al menos 3 puntos para cerrar la zona.', 'error'); return; }
-    const cruzado = autoCruce(dibujo);
-    let n = zonas.length + 1, id = `zona-${n}`;
-    while (zonas.some((z) => z.id === id)) id = `zona-${++n}`;
+    if (!repNuevo) { aviso('Primero elige el repartidor de la zona.', 'error'); return; }
+    if (dibujo.length < 3) { aviso('Marca al menos 3 puntos para crear la zona.', 'error'); return; }
+    if (autoCruce(dibujo)) { aviso('El contorno se cruza consigo mismo. Quita el último punto y vuelve a marcarlo.', 'error'); return; }
+    let n = zonas.length + 1;
+    while (zonas.some((z) => z.id === `zona-${n}` || z.nombre === `Zona ${n}`)) n++;
     const [lo, la] = centroide(dibujo);
-    const mun = Object.entries(COBERTURA).find(([, p]) => dentroAnillo(lo, la, p.map(([a, b]) => [b, a])));
-    zonas.push({ id, nombre: `Zona ${n}`, municipio: mun ? mun[0] : 'bogota', repartidores: [], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [dibujo.map((p) => [...p])] });
-    dibujo = []; elegida = zonas.length - 1;
-    cambiarModo('editar'); guardar();
-    aviso(cruzado ? 'Zona creada, pero el polígono se cruza consigo mismo: mueve los vértices para corregirlo.' : 'Zona creada. Asígnale un repartidor.', cruzado ? 'error' : 'ok');
+    const mun = Object.entries(COBERTURA).find(([, pol]) => dentroAnillo(lo, la, pol.map(([y, x]) => [x, y])));
+    const nueva = { id: `zona-${n}`, nombre: `Zona ${n}`, municipio: mun ? mun[0] : 'bogota', repartidores: [repNuevo], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [dibujo.map((q) => [...q])] };
+    zonas.push(nueva);
+    const quitadas = recortarVecinas(nueva);
+    dibujo = []; repNuevo = null;
+    elegida = zonas.indexOf(nueva);
+    cambiarModo('ver'); guardar(); pintarDetalle();
+    aviso(`Zona creada para <b>${esc(riderNombre(nueva.repartidores[0]))}</b>. Las zonas de alrededor se ajustaron a su borde.${quitadas.length ? `<br>Quedaron cubiertas por completo y se eliminaron: ${quitadas.map((z) => esc(z.nombre)).join(', ')}.` : ''}`);
   }
   function probar(lat, lon) {
     if (!isFinite(lat) || !isFinite(lon)) { aviso('Escribe la coordenada como <b>latitud, longitud</b> (por ejemplo 4.6486, -74.0628).', 'error'); return; }
@@ -977,6 +1043,8 @@ $$;
         if (elegida !== null && (modo === 'editar' || tipo === 'localidades')) encuadrar(lista()[elegida]);
         pintarLista(); pintarDetalle(); arrancar(); return;
       }
+      const op = e.target.closest('[data-mz-rep]');
+      if (op) { repNuevo = op.dataset.mzRep; pintarDetalle(); arrancar(); return; }
       const b = e.target.closest('[data-mz-accion]');
       if (!b) { if (!e.target.closest('#mz-menu')) cerrarMenu(); return; }
       const acc = b.dataset.mzAccion;
@@ -986,7 +1054,8 @@ $$;
       else if (acc === 'editar-esta') { cambiarModo('editar'); if (elegida !== null) encuadrar(zonas[elegida]); }
       else if (acc === 'borrar-vertice') { const [pi, vi] = b.dataset.v.split(',').map(Number); borrarVertice(pi, vi); }
       else if (acc === 'borrar-zona') { if (!confirm(`¿Eliminar la zona "${zonas[elegida].nombre}"? Puedes recuperarla importando un GeoJSON guardado.`)) return; zonas.splice(elegida, 1); elegida = null; guardar(); pintarDetalle(); }
-      else if (acc === 'deshacer-punto') { dibujo.pop(); pintarDetalle(); }
+      else if (acc === 'deshacer-punto') { dibujo.pop(); pintarDetalle(); arrancar(); }
+      else if (acc === 'cancelar-dibujo') { dibujo = []; repNuevo = null; cambiarModo('ver'); arrancar(); }
       else if (acc === 'cerrar-dibujo') cerrarDibujo();
       else if (acc === 'acercar') acercar(1.4);
       else if (acc === 'alejar') acercar(1 / 1.4);
@@ -1010,10 +1079,9 @@ $$;
       if (f && elegida !== null && tipo === 'reparto') {
         const z = zonas[elegida];
         z.nombre = f.nombre.value.trim() || z.nombre;
-        z.municipio = f.municipio.value;
-        z.prioridad = Number(f.prioridad.value) || 0;
         z.capacidad = Math.max(1, Number(f.capacidad.value) || PEDIDOS_POR_REPARTIDOR);
-        z.repartidores = $$('input[name="rep"]:checked', f).map((i) => i.value);
+        const elegido = $('input[name="rep"]:checked', f);
+        if (elegido) z.repartidores = [elegido.value];   // siempre uno: no hay zonas sin repartidor
         guardar();
         $('.mz-det-cab h3').textContent = z.nombre;
         return;
@@ -1093,5 +1161,6 @@ $$;
     requestAnimationFrame(() => { medir(); arrancar(); });
   }
 
-  window.LEMapa = { montar, zonasGeoJSON: () => aGeoJSON(), localidadesGeoJSON: () => territorioGeoJSON(), asignar };
+  // API para el equipo técnico / backend (no aparece en la interfaz)
+  window.LEMapa = { montar, zonasGeoJSON: () => aGeoJSON(), localidadesGeoJSON: () => territorioGeoJSON(), asignar, sql: () => aSQL() };
 })();

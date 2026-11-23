@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=11">
+<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=15">
 <link rel="icon" href="../img/icons/icon-192.png">
 </head>
 <body>
@@ -125,87 +125,80 @@
       <div class="rider-grid" id="riders"></div>
     </section>
 
-    <!-- ===== Mapa de zonas ===== -->
-    <section class="view" id="view-mapa" data-tipo="localidades" data-modo="ver" hidden>
-      <div class="mz-cabecera">
-        <div class="mz-tipo" id="mz-tipo" role="tablist" aria-label="Tipo de zona">
-          <button type="button" role="tab" data-mz-tipo="localidades" aria-pressed="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-6 2.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
-            <span><b>Localidades</b><small>Bogotá, Funza y Soacha</small></span>
-          </button>
-          <button type="button" role="tab" data-mz-tipo="reparto" aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M15 6h2.5l2.5 8.5M11 10h5l-1.5 7"/></svg>
-            <span><b>Zonas de reparto</b><small>Una por repartidor · autoasignación</small></span>
-          </button>
-        </div>
-        <div class="seg seg-sm" id="mz-periodo" role="group" aria-label="Periodo">
-          <button type="button" data-periodo="hoy" aria-pressed="true">Hoy</button>
-          <button type="button" data-periodo="semana" aria-pressed="false">7 días</button>
-        </div>
-      </div>
-      <div class="kpis mz-kpis" id="mz-kpis"></div>
-      <div class="mz-grid">
-        <article class="card mz-mapa-card">
-          <header class="mz-barra-sup">
-            <div class="seg" id="mz-modo" role="group" aria-label="Modo del mapa">
-              <button type="button" data-mz-modo="ver" aria-pressed="true">Ver</button>
-              <button type="button" data-mz-modo="editar" aria-pressed="false">Editar</button>
-              <button type="button" data-mz-modo="dibujar" aria-pressed="false">+ Nueva zona</button>
-              <button type="button" data-mz-modo="probar" aria-pressed="false">Probar punto</button>
-            </div>
-            <div class="mz-derecha">
-              <div class="chips" id="mz-capas" role="toolbar" aria-label="Capas del mapa">
-                <button type="button" class="chip" data-capa="calor" aria-pressed="true">Calor</button>
-                <button type="button" class="chip" data-capa="calles" aria-pressed="true">Calles</button>
-                <button type="button" class="chip" data-capa="nombres" aria-pressed="true">Nombres</button>
-              </div>
-              <div class="mz-menu-wrap">
-                <button type="button" class="mz-menu-btn" data-mz-accion="menu" aria-haspopup="true" aria-expanded="false" aria-label="Más opciones del mapa">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
-                </button>
-                <div class="mz-menu" id="mz-menu" role="menu" hidden>
-                  <p class="mz-menu-tit">Zonas de reparto</p>
-                  <button type="button" role="menuitem" data-mz-accion="importar">Importar GeoJSON…</button>
-                  <button type="button" role="menuitem" data-mz-accion="exportar">Exportar GeoJSON</button>
-                  <button type="button" role="menuitem" data-mz-accion="validar">Revisar solapes y huecos</button>
-                  <p class="mz-menu-tit">Localidades</p>
-                  <button type="button" role="menuitem" data-mz-accion="exportar-localidades">Exportar GeoJSON</button>
-                  <p class="mz-menu-tit">Base de datos</p>
-                  <button type="button" role="menuitem" data-mz-accion="sql">Descargar SQL para PostGIS</button>
-                  <hr>
-                  <button type="button" role="menuitem" class="peligro" data-mz-accion="restablecer">Restablecer zonas de reparto</button>
-                </div>
-                <input type="file" id="mz-archivo" accept=".geojson,.json,application/geo+json,application/json" hidden>
-              </div>
-            </div>
-          </header>
-          <div class="mz-lienzo">
-            <canvas id="mz-mapa" role="img" aria-label="Mapa de Bogotá, Funza y Soacha con localidades, zonas de reparto y demanda de pedidos"></canvas>
-            <div class="mz-tip" id="mz-tip" hidden></div>
-            <div class="mz-zoom" role="group" aria-label="Zoom">
-              <button type="button" data-mz-accion="acercar" aria-label="Acercar">+</button>
-              <button type="button" data-mz-accion="alejar" aria-label="Alejar">−</button>
-              <button type="button" data-mz-accion="encuadrar" aria-label="Ver todo">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
-              </button>
-            </div>
-            <p class="mz-aviso" id="mz-aviso" role="status" hidden></p>
+    <!-- ===== Mapa de zonas (pantalla completa, menús flotantes) ===== -->
+    <section class="view mz-full" id="view-mapa" data-tipo="localidades" data-modo="ver" data-detalle="no" hidden>
+      <div class="mz-lienzo">
+        <canvas id="mz-mapa" role="img" aria-label="Mapa de Bogotá, Funza y Soacha con localidades, zonas de reparto y demanda de pedidos"></canvas>
+        <div class="mz-tip" id="mz-tip" hidden></div>
+
+        <!-- Siempre visible: tipo de zona y periodo -->
+        <div class="mz-flota mz-arriba-izq">
+          <div class="mz-tipo" id="mz-tipo" role="tablist" aria-label="Tipo de zona">
+            <button type="button" role="tab" data-mz-tipo="localidades" aria-pressed="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-6 2.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
+              <span><b>Localidades</b><small>Demanda por zona</small></span>
+            </button>
+            <button type="button" role="tab" data-mz-tipo="reparto" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M15 6h2.5l2.5 8.5M11 10h5l-1.5 7"/></svg>
+              <span><b>Zonas de reparto</b><small>Una por repartidor</small></span>
+            </button>
           </div>
-          <footer class="mz-leyenda">
-            <span class="mz-coord" title="Coordenada bajo el cursor (latitud, longitud · WGS84)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b id="mz-cursor">—</b></span>
-            <span class="mz-ley solo-localidades"><i style="--c:#9C8FFF"></i>Tranquila <i style="--c:#8FD3FF"></i>Normal <i style="--c:#FFB547"></i>Alta <i style="--c:#FF6B83"></i>Caliente</span>
-            <span class="mz-ley solo-localidades"><i class="mz-guion"></i>Límite aproximado</span>
-            <span class="mz-ley solo-reparto"><i style="--c:#8FD3FF"></i>Cada color, un repartidor <i class="mz-rayas"></i>Sin repartidor</span>
-            <span class="mz-guardado solo-reparto" id="mz-guardado">Se guarda en este navegador</span>
-          </footer>
-        </article>
-        <aside class="mz-lado">
-          <article class="card mz-detalle" id="mz-detalle" aria-live="polite"></article>
-          <article class="card">
+          <div class="seg seg-sm" id="mz-periodo" role="group" aria-label="Periodo">
+            <button type="button" data-periodo="hoy" aria-pressed="true">Hoy</button>
+            <button type="button" data-periodo="semana" aria-pressed="false">7 días</button>
+          </div>
+        </div>
+
+        <!-- Herramientas: cambian según el tipo de zona -->
+        <div class="mz-flota mz-arriba-der">
+          <div class="seg solo-reparto" id="mz-modo" role="group" aria-label="Modo">
+            <button type="button" data-mz-modo="ver" aria-pressed="true">Ver</button>
+            <button type="button" data-mz-modo="editar" aria-pressed="false">Editar</button>
+            <button type="button" class="mz-nueva" data-mz-modo="dibujar" aria-pressed="false">+ Nueva zona</button>
+          </div>
+          <div class="chips" id="mz-capas" role="toolbar" aria-label="Capas del mapa">
+            <button type="button" class="chip" data-capa="calor" aria-pressed="true">Calor</button>
+            <button type="button" class="chip" data-capa="calles" aria-pressed="true">Calles</button>
+            <button type="button" class="chip solo-localidades" data-capa="nombres" aria-pressed="true">Nombres</button>
+          </div>
+          <div class="mz-menu-wrap solo-reparto">
+            <button type="button" class="mz-menu-btn" data-mz-accion="menu" aria-haspopup="true" aria-expanded="false" aria-label="Más opciones">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+            </button>
+            <div class="mz-menu" id="mz-menu" role="menu" hidden>
+              <button type="button" role="menuitem" data-mz-accion="validar">Revisar zonas</button>
+              <button type="button" role="menuitem" data-mz-accion="exportar">Descargar zonas</button>
+              <button type="button" role="menuitem" data-mz-accion="importar">Cargar zonas desde archivo…</button>
+              <hr>
+              <button type="button" role="menuitem" class="peligro" data-mz-accion="restablecer">Volver a las zonas iniciales</button>
+            </div>
+            <input type="file" id="mz-archivo" accept=".geojson,.json,application/geo+json,application/json" hidden>
+          </div>
+        </div>
+
+        <!-- Panel flotante: lista o detalle, según lo que se seleccione -->
+        <aside class="mz-flota mz-panel" aria-label="Detalle del mapa">
+          <article class="mz-tarjeta mz-detalle" id="mz-detalle" aria-live="polite"></article>
+          <article class="mz-tarjeta mz-lista-card">
             <header class="card-head"><h2 id="mz-lista-titulo">Localidades por demanda</h2><span class="mz-sub" id="mz-lista-sub"></span></header>
             <ol class="mz-lista" id="mz-lista"></ol>
           </article>
         </aside>
+
+        <div class="mz-flota mz-zoom" role="group" aria-label="Zoom">
+          <button type="button" data-mz-accion="acercar" aria-label="Acercar">+</button>
+          <button type="button" data-mz-accion="alejar" aria-label="Alejar">−</button>
+          <button type="button" data-mz-accion="encuadrar" aria-label="Ver todo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+        </div>
+
+        <footer class="mz-flota mz-leyenda">
+          <span class="mz-ley solo-localidades"><i style="--c:#9C8FFF"></i>Tranquila <i style="--c:#8FD3FF"></i>Normal <i style="--c:#FFB547"></i>Alta <i style="--c:#FF6B83"></i>Caliente</span>
+          <span class="mz-ley solo-localidades"><i class="mz-guion"></i>Límite aproximado</span>
+          <span class="mz-ley solo-reparto"><i style="--c:#8FD3FF"></i>Cada color es un repartidor</span>
+          <span class="mz-guardado solo-reparto" id="mz-guardado">Se guarda en este navegador</span>
+        </footer>
+
+        <p class="mz-aviso" id="mz-aviso" role="status" hidden></p>
       </div>
     </section>
 
@@ -264,7 +257,8 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="../Scripts/mapa-zonas.js?v=10"></script>
-<script src="../Scripts/Scripts-paneladmin.js?v=5"></script>
+<script src="../Scripts/vendor/polygon-clipping.min.js"></script>
+<script src="../Scripts/mapa-zonas.js?v=15"></script>
+<script src="../Scripts/Scripts-paneladmin.js?v=6"></script>
 </body>
 </html>

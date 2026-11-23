@@ -910,3 +910,101 @@ body {
 }
 /* Zonas de reparto: el mapa va sin etiquetas */
 #view-mapa[data-tipo="reparto"] [data-capa="nombres"] { display: none; }
+
+/* =====================================================================
+   MAPA A PANTALLA COMPLETA
+   El mapa ocupa todo; la barra superior, las pestañas, las herramientas,
+   la lista/detalle, el zoom y la leyenda flotan encima.
+   ===================================================================== */
+body[data-vista="mapa"] .main { position: relative; padding: 0; height: 100dvh; overflow: hidden; }
+body[data-vista="mapa"] .topbar {
+  position: absolute; z-index: 6; top: 0; left: 0; right: 0; margin: 0;
+  padding: 1rem clamp(1rem, 2vw, 1.5rem) 2.5rem;
+  background: linear-gradient(180deg, rgba(11, 8, 38, 0.92) 0%, rgba(11, 8, 38, 0.6) 55%, transparent 100%);
+  pointer-events: none;
+}
+body[data-vista="mapa"] .topbar > * { pointer-events: auto; }
+body[data-vista="mapa"] .topbar h1 { font-size: 1.375rem; }
+
+.mz-full { position: absolute; inset: 0; }
+.mz-full .mz-lienzo { position: absolute; inset: 0; height: auto; border: none; border-radius: 0; box-shadow: none !important; }
+.mz-flota { position: absolute; z-index: 4; }
+.mz-arriba-izq { top: 92px; left: clamp(1rem, 2vw, 1.5rem); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.mz-arriba-der { top: 92px; right: clamp(1rem, 2vw, 1.5rem); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 52%; }
+.mz-flota .seg, .mz-flota .mz-tipo, .mz-flota .chips .chip, .mz-menu-btn, .mz-zoom, .mz-leyenda, .mz-tarjeta {
+  background-color: rgba(21, 16, 52, 0.86);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  box-shadow: 0 12px 30px -16px rgba(0, 0, 0, 0.85);
+}
+.mz-flota .chips .chip { border-color: var(--border-strong); }
+.mz-flota .chips .chip[aria-pressed="true"] { background: #ECE9F8; }
+.mz-nueva { color: var(--lima) !important; }
+.mz-nueva[aria-pressed="true"] { background: var(--lima) !important; color: var(--lima-ink) !important; }
+
+/* panel derecho: lista o detalle */
+.mz-panel {
+  top: 150px; right: clamp(1rem, 2vw, 1.5rem); bottom: 70px; width: min(360px, 34vw);
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.mz-panel > * { pointer-events: auto; }
+.mz-tarjeta { padding: 1rem 1.1rem; border-radius: var(--r-lg); border: 1px solid var(--border-strong); }
+.mz-lista-card { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.mz-lista-card .mz-lista { flex: 1; max-height: none; min-height: 0; }
+.mz-detalle { max-height: 100%; overflow-y: auto; }
+#view-mapa[data-detalle="no"] .mz-detalle { display: none; }
+#view-mapa[data-detalle="si"] .mz-lista-card { display: none; }
+#view-mapa[data-detalle="si"] .mz-panel { bottom: auto; }
+
+.mz-zoom { top: auto; right: clamp(1rem, 2vw, 1.5rem); bottom: 18px; flex-direction: row; }
+.mz-zoom button + button { border-top: none; border-left: 1px solid var(--border); }
+#view-mapa:not([data-detalle="si"]) .mz-zoom { right: calc(clamp(1rem, 2vw, 1.5rem) + min(360px, 34vw) + 10px); }
+.mz-leyenda { left: clamp(1rem, 2vw, 1.5rem); bottom: 18px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); }
+.mz-aviso { left: 50%; right: auto; bottom: 70px; transform: translateX(-50%); width: min(520px, calc(100% - 2rem)); z-index: 7; }
+
+/* elegir repartidor */
+.mz-paso { display: flex; align-items: center; gap: 8px; margin: 0.6rem 0 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--text); }
+.mz-paso span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--lima); color: var(--lima-ink); font-size: 0.6875rem; font-weight: 700; }
+.mz-paso.apagado { opacity: 0.45; }
+.mz-reps-elegir { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mz-rep-op { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm); border: 1px solid var(--border); background: rgba(236, 233, 248, 0.04); font-size: 0.8125rem; color: var(--text); text-align: left; cursor: pointer; }
+.mz-rep-op .mz-avatar { width: 24px; height: 24px; border-radius: 8px; font-size: 0.625rem; flex-shrink: 0; }
+.mz-rep-op:hover { border-color: var(--border-strong); }
+.mz-rep-op[aria-checked="true"], .mz-rep-op:has(input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); color: #fff; }
+.mz-rep-op input { position: absolute; opacity: 0; pointer-events: none; }
+.mz-form fieldset { display: block; }
+
+@media (max-width: 900px) {
+  body[data-vista="mapa"] .main { height: calc(100dvh - 64px); }
+  body[data-vista="mapa"] .topbar { padding-bottom: 1.5rem; }
+  body[data-vista="mapa"] .search { display: none; }
+  .mz-arriba-izq { top: 74px; }
+  .mz-arriba-der { top: 150px; left: clamp(1rem, 2vw, 1.5rem); right: auto; max-width: none; justify-content: flex-start; }
+  .mz-panel { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 46%; padding: 0 8px 8px; }
+  .mz-tarjeta { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .mz-lista-card { max-height: 34vh; }
+  .mz-zoom, #view-mapa:not([data-detalle="si"]) .mz-zoom { right: 12px; bottom: auto; top: 200px; flex-direction: column; }
+  .mz-zoom button + button { border-left: none; border-top: 1px solid var(--border); }
+  .mz-leyenda { display: none; }
+  .mz-aviso { bottom: auto; top: 200px; }
+}
+@media (max-width: 640px) {
+  .mz-arriba-der .chips { display: none; }
+  .mz-reps-elegir { grid-template-columns: 1fr; }
+}
+.mz-arriba-der { z-index: 6; }
+.mz-arriba-izq { z-index: 5; }
+.mz-flota .seg button { white-space: nowrap; }
+@media (max-width: 900px) {
+  .mz-arriba-der { top: 206px; }
+  .mz-zoom, #view-mapa:not([data-detalle="si"]) .mz-zoom { top: 262px; }
+  .mz-aviso { top: 262px; }
+}
+@media (max-width: 640px) {
+  .mz-flota .seg button { padding: 0 10px; font-size: 0.8125rem; }
+}
+@media (max-width: 640px) {
+  .mz-arriba-izq #mz-periodo { display: none; }
+  .mz-arriba-der { top: 148px; }
+  .mz-zoom, #view-mapa:not([data-detalle="si"]) .mz-zoom { top: 204px; }
+  .mz-aviso { top: 204px; }
+}

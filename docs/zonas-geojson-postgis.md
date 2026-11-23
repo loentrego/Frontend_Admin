@@ -77,7 +77,7 @@ Al importar, el panel acepta un `FeatureCollection`, un `Feature` suelto o una g
 
 ### Opción A: el SQL que genera el panel
 
-El menú **⋯ → Descargar SQL para PostGIS** descarga `zonas-loentrego.sql`, que hace todo esto:
+`window.LEMapa.sql()` genera el script (por ejemplo, desde la consola del navegador en el panel). El script hace todo esto:
 
 1. Activa la extensión `postgis`.
 2. Crea la tabla `zonas_reparto` con un índice espacial **GIST**.
@@ -111,7 +111,7 @@ Aquí `$7` es `feature.geometry` en texto JSON.
 
 ## 3. Autoasignación
 
-La regla es la misma en PostGIS y en el botón **Probar punto** del panel:
+La regla es la misma en PostGIS y en `window.LEMapa.asignar()`:
 
 1. Se usa la zona que **contiene** el punto de entrega. Se usa `ST_Covers`, así que un punto justo sobre el borde también cuenta.
 2. Si varias zonas lo contienen (solape), gana la de **mayor `prioridad`**.
@@ -138,24 +138,34 @@ Recomendaciones:
 
 - Guarda el punto del pedido como `geography(Point, 4326)` o `geometry(Point, 4326)`. Si vas a buscar repartidores por distancia, crea también un índice GIST para esos puntos.
 - Si el resultado trae `dentro = false`, márcalo para revisión: la dirección quedó fuera de las zonas.
-- Antes de importar, usa **⋯ → Revisar solapes y huecos** en el panel. Revisa solapes, huecos, polígonos cruzados y zonas sin repartidor, con una muestra cada unos 200 m.
+- Antes de importar, usa **⋯ → Revisar zonas** en el panel. Revisa solapes, huecos, polígonos cruzados y zonas sin repartidor, con una muestra cada unos 200 m.
 
 ## 4. Editar en el panel
 
-Todo esto se hace en la pestaña **Zonas de reparto**:
+El mapa ocupa toda la pantalla y los menús flotan encima. El panel no muestra
+coordenadas: el usuario solo ve zonas, repartidores y demanda.
 
+En la pestaña **Zonas de reparto**:
 
-- **Editar zonas**:
-  - Arrastra un vértice para moverlo. Los vértices compartidos con zonas vecinas se mueven juntos, así no se abren huecos. Con <kbd>Alt</kbd> se mueve solo ese.
-  - Arrastra un punto medio para agregar un vértice.
-  - Haz doble clic en un vértice para borrarlo.
-  - Las coordenadas de cada vértice también se pueden escribir a mano.
-- **+ Nueva zona**: toca el mapa para poner cada vértice; se pegan a los vértices vecinos. Para cerrar, toca el primer punto, haz doble clic o pulsa <kbd>Enter</kbd>.
-- **Probar punto**: escribe `latitud, longitud` o toca el mapa. Muestra la localidad y la zona de reparto, con sus repartidores.
-- Los cambios se guardan en el navegador (`localStorage`, clave `loentrego-admin-zonas-v1`) hasta que exista el backend. Para conservarlos o compartirlos, usa **⋯ → Exportar GeoJSON**.
+- **Toda zona tiene repartidor.** No se puede crear ni dejar una zona sin repartidor: el formulario usa una sola opción, que es obligatoria.
+- **+ Nueva zona**: primero se elige el repartidor y después se marca el contorno en el mapa.
+  - Al crearla, las zonas de alrededor **se recortan** para que no queden encima. Si una zona queda cubierta por completo, se elimina y el panel avisa.
+  - El recorte usa la librería `polygon-clipping` (MIT), guardada en `Scripts/vendor/`.
+- **Editar**:
+  - Arrastra un punto blanco para mover el borde, o uno pequeño para agregar un punto. Doble clic quita un punto.
+  - Los puntos compartidos con zonas vecinas se mueven juntos.
+  - Al soltar un punto, la zona editada conserva su área y las vecinas se recortan.
+- **Menú ⋯**:
+  - *Revisar zonas*: busca solapes, huecos y polígonos cruzados.
+  - *Descargar zonas*: baja el GeoJSON de este documento.
+  - *Cargar zonas desde archivo…*: sube un GeoJSON.
+  - *Volver a las zonas iniciales*.
+- Si una zona queda totalmente dentro de otra, la de afuera conserva un **hueco**. En el GeoJSON sale como un anillo interior, y PostGIS lo maneja igual.
+- Los cambios se guardan en el navegador (`localStorage`, clave `loentrego-admin-zonas-v1`) hasta que exista el backend.
 
-Desde el código:
+Desde el código, para el backend o el equipo técnico (no aparece en la interfaz):
 
 - `window.LEMapa.zonasGeoJSON()` devuelve las zonas de reparto.
 - `window.LEMapa.localidadesGeoJSON()` devuelve las localidades.
 - `window.LEMapa.asignar(lat, lon)` aplica la regla de autoasignación y además devuelve la localidad del punto.
+- `window.LEMapa.sql()` devuelve el SQL para PostGIS (tablas, índices, datos y funciones).

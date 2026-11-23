@@ -31,9 +31,13 @@
     { id: 'r1', nombre: 'Camilo Restrepo', celular: '3001234567', vehiculo: 'Moto · ABC12D' },
     { id: 'r2', nombre: 'Laura Jiménez', celular: '3116547890', vehiculo: 'Moto · XYZ98K' },
     { id: 'r3', nombre: 'Andrés Torres', celular: '3204561278', vehiculo: 'Bicicleta' },
+    { id: 'r4', nombre: 'Juliana Pardo', celular: '3012223344', vehiculo: 'Moto · JPD45F' },
+    { id: 'r5', nombre: 'Mateo Rincón', celular: '3135556677', vehiculo: 'Moto · MRN71H' },
+    { id: 'r6', nombre: 'Diana Salazar', celular: '3178889900', vehiculo: 'Moto · DSL23K' },
+    { id: 'r7', nombre: 'Kevin Castaño', celular: '3221114455', vehiculo: 'Bicicleta' },
   ];
   // Cada repartidor tiene un color (el mismo en el mapa de zonas)
-  const COLORES_REP = ['#8FD3FF', '#FFB547', '#FF8FB1', '#7EE0C3', '#C3B9FF', '#B5DB2E', '#FF9F6E', '#6FA8FF'];
+  const COLORES_REP = ['#8FD3FF', '#FFB547', '#FF8FB1', '#7EE0C3', '#C3B9FF', '#FF9F6E', '#6FA8FF', '#F2DE6B'];
   const riderStyle = (id) => `style="--c:${COLORES_REP[Math.max(0, RIDERS.findIndex((r) => r.id === id)) % COLORES_REP.length]}"`;
   // El mapa de zonas usa esta lista para asignar repartidores a cada zona
   window.LEAdmin = { riders: RIDERS };
@@ -177,6 +181,7 @@
     view = v;
     $$('[data-nav]').forEach((a) => a.setAttribute('aria-current', a.dataset.nav === v ? 'page' : 'false'));
     $$('.view').forEach((s) => { s.hidden = s.id !== 'view-' + v; });
+    document.body.dataset.vista = v;
     $('#page-title').textContent = VIEWS[v].title;
     VIEWS[v].render();
     const sec = $('#view-' + v);
