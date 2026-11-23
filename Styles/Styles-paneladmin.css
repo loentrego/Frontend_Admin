@@ -908,3 +908,5 @@ body {
   .mz-tipo small { display: none; }
   .mz-tipo button svg { width: 28px; height: 28px; padding: 5px; }
 }
+/* Zonas de reparto: el mapa va sin etiquetas */
+#view-mapa[data-tipo="reparto"] [data-capa="nombres"] { display: none; }

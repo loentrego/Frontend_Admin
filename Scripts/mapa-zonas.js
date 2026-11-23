@@ -170,7 +170,7 @@
       let ring = cob[s.municipio];
       const c = [s.centro[1], s.centro[0]];
       if (s.municipio === 'bogota') for (const o of SEMILLAS) if (o !== s && o.municipio === 'bogota') ring = recortarSemiplano(ring, c, [o.centro[1], o.centro[0]]);
-      return { id: s.id, nombre: s.nombre, municipio: s.municipio, repartidores: [...s.repartidores], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [ring.map(([x, y]) => [r6(x), r6(y)])] };
+      return { id: s.id, nombre: `Zona ${SEMILLAS.indexOf(s) + 1}`, municipio: s.municipio, repartidores: [...s.repartidores], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [ring.map(([x, y]) => [r6(x), r6(y)])] };
     });
     // cortes sobre el borde de Funza/Soacha: vértices compartidos
     const sobre = (p, a, b) => {
@@ -199,7 +199,12 @@
   function cargar() {
     try {
       const d = JSON.parse(localStorage.getItem(CLAVE) || 'null');
-      if (d && Array.isArray(d.zonas) && d.zonas.length) { zonas = d.zonas; return; }
+      if (d && Array.isArray(d.zonas) && d.zonas.length) {
+        zonas = d.zonas;
+        // las zonas de reparto no llevan nombre de localidad
+        zonas.forEach((z) => { const k = SEMILLAS.findIndex((x) => x.id === z.id && x.nombre === z.nombre); if (k >= 0) z.nombre = `Zona ${k + 1}`; });
+        return;
+      }
     } catch { /* datos dañados */ }
     zonas = zonasIniciales();
   }
@@ -570,7 +575,7 @@ $$;
       ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.6; ctx.stroke();
     }
     // nombres
-    if (capas.nombres) {
+    if (capas.nombres && tipo === 'localidades') {
       L.forEach((z, i) => {
         if (tipo === 'localidades' && z.tipo === 'rural' && i !== elegida) return;
         const [x, y] = aPx(...puntoEtiqueta(z));
@@ -933,10 +938,10 @@ $$;
     while (zonas.some((z) => z.id === id)) id = `zona-${++n}`;
     const [lo, la] = centroide(dibujo);
     const mun = Object.entries(COBERTURA).find(([, p]) => dentroAnillo(lo, la, p.map(([a, b]) => [b, a])));
-    zonas.push({ id, nombre: `Zona nueva ${n}`, municipio: mun ? mun[0] : 'bogota', repartidores: [], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [dibujo.map((p) => [...p])] });
+    zonas.push({ id, nombre: `Zona ${n}`, municipio: mun ? mun[0] : 'bogota', repartidores: [], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [dibujo.map((p) => [...p])] });
     dibujo = []; elegida = zonas.length - 1;
     cambiarModo('editar'); guardar();
-    aviso(cruzado ? 'Zona creada, pero el polígono se cruza consigo mismo: mueve los vértices para corregirlo.' : 'Zona creada. Ponle nombre y asígnale un repartidor.', cruzado ? 'error' : 'ok');
+    aviso(cruzado ? 'Zona creada, pero el polígono se cruza consigo mismo: mueve los vértices para corregirlo.' : 'Zona creada. Asígnale un repartidor.', cruzado ? 'error' : 'ok');
   }
   function probar(lat, lon) {
     if (!isFinite(lat) || !isFinite(lon)) { aviso('Escribe la coordenada como <b>latitud, longitud</b> (por ejemplo 4.6486, -74.0628).', 'error'); return; }
