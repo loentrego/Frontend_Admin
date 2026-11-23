@@ -381,6 +381,7 @@
     document.documentElement.dataset.tema = t;
     try { localStorage.setItem('loentrego-admin-tema', t); } catch { /* */ }
     $$('[data-action="tema"]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.tema === t)));
+    document.dispatchEvent(new CustomEvent('le:tema'));
   }
 
   // ---------- Detalle del pedido (panel lateral) ----------

@@ -1152,13 +1152,13 @@ body[data-vista="mapa"] .topbar h1 { font-size: 1.375rem; }
 
 /* ===== Tema claro ===== */
 :root[data-tema="claro"] {
-  --bg-page: #F4F2FC; --bg-panel: #FFFFFF; --bg-panel-alt: #F1EEFB; --bg-raised: #E7E2F8;
+  --bg-page: #E6E3EF; --bg-panel: #F3F1F8; --bg-panel-alt: #EAE7F3; --bg-raised: #DEDAEC;
   --border: rgba(27, 19, 112, .1); --border-strong: rgba(27, 19, 112, .2);
   --text: #2A2350; --text-strong: #12092E; --muted: #6E6896; color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
   :root[data-tema="auto"] {
-    --bg-page: #F4F2FC; --bg-panel: #FFFFFF; --bg-panel-alt: #F1EEFB; --bg-raised: #E7E2F8;
+    --bg-page: #E6E3EF; --bg-panel: #F3F1F8; --bg-panel-alt: #EAE7F3; --bg-raised: #DEDAEC;
     --border: rgba(27, 19, 112, .1); --border-strong: rgba(27, 19, 112, .2);
     --text: #2A2350; --text-strong: #12092E; --muted: #6E6896; color-scheme: light;
   }
@@ -1186,12 +1186,40 @@ body[data-vista="mapa"] .topbar h1 { font-size: 1.375rem; }
 /* Modo claro: logo con letras índigo; el mapa se mantiene oscuro (el lienzo está pensado para fondo oscuro) */
 :root[data-tema="claro"] .brand img { content: url("../img/LoEntrego2026-wordmark-oscuro.png"); }
 @media (prefers-color-scheme: light) { :root[data-tema="auto"] .brand img { content: url("../img/LoEntrego2026-wordmark-oscuro.png"); } }
-:root[data-tema="claro"] body[data-vista="mapa"] .main, :root[data-tema="auto"] body[data-vista="mapa"] .main {
-  --bg-page: #0B0826; --bg-panel: #151034; --bg-panel-alt: #1D1746; --bg-raised: #272056;
-  --border: rgba(236, 233, 248, 0.09); --border-strong: rgba(236, 233, 248, 0.18);
-  --text: #ECE9F8; --text-strong: #FFFFFF; --muted: #A49DD2; color-scheme: dark;
-  background: var(--bg-page);
+
+
+/* Claro suave (sin blanco brillante) y mapa en papel */
+:root[data-tema="claro"] .sidebar { background: rgba(236, 233, 244, .9) !important; }
+:root[data-tema="claro"] .search, :root[data-tema="claro"] .account-btn { background: var(--bg-panel) !important; }
+:root[data-tema="claro"] .drawer-panel { background: var(--bg-panel) !important; }
+:root[data-tema="claro"] .mz-lienzo { background: #E9E6F1 !important; }
+:root[data-tema="claro"] .mz-flota .seg, :root[data-tema="claro"] .mz-flota .chips .chip, :root[data-tema="claro"] .mz-zoom, :root[data-tema="claro"] .mz-leyenda, :root[data-tema="claro"] .mz-tarjeta, :root[data-tema="claro"] .mz-tip, :root[data-tema="claro"] .mz-aviso { background-color: rgba(243, 241, 248, .92) !important; }
+:root[data-tema="claro"] body[data-vista="mapa"] .topbar { background: linear-gradient(180deg, rgba(233, 230, 241, .95), rgba(233, 230, 241, .6) 55%, transparent) !important; }
+:root[data-tema="claro"] .mz-flota .chips .chip[aria-pressed="true"] { background: #1B1370 !important; color: #fff !important; }
+@media (prefers-color-scheme: light) {
+
+:root[data-tema="auto"] .sidebar { background: rgba(236, 233, 244, .9) !important; }
+:root[data-tema="auto"] .search, :root[data-tema="auto"] .account-btn { background: var(--bg-panel) !important; }
+:root[data-tema="auto"] .drawer-panel { background: var(--bg-panel) !important; }
+:root[data-tema="auto"] .mz-lienzo { background: #E9E6F1 !important; }
+:root[data-tema="auto"] .mz-flota .seg, :root[data-tema="auto"] .mz-flota .chips .chip, :root[data-tema="auto"] .mz-zoom, :root[data-tema="auto"] .mz-leyenda, :root[data-tema="auto"] .mz-tarjeta, :root[data-tema="auto"] .mz-tip, :root[data-tema="auto"] .mz-aviso { background-color: rgba(243, 241, 248, .92) !important; }
+:root[data-tema="auto"] body[data-vista="mapa"] .topbar { background: linear-gradient(180deg, rgba(233, 230, 241, .95), rgba(233, 230, 241, .6) 55%, transparent) !important; }
+:root[data-tema="auto"] .mz-flota .chips .chip[aria-pressed="true"] { background: #1B1370 !important; color: #fff !important; }
 }
-:root[data-tema="claro"] body[data-vista="mapa"] .main .seg button[aria-pressed="true"], :root[data-tema="claro"] body[data-vista="mapa"] .main .chip[aria-pressed="true"] { background: #ECE9F8 !important; color: #1B1370 !important; }
-:root[data-tema="claro"] body[data-vista="mapa"] .main .search, :root[data-tema="claro"] body[data-vista="mapa"] .main .account-btn { background: rgba(236,233,248,.07) !important; }
-:root[data-tema="claro"] body[data-vista="mapa"] .main, :root[data-tema="auto"] body[data-vista="mapa"] .main { color: var(--text); }
+
+:root[data-tema="claro"] .mz-nivel[data-nivel="caliente"] { background: rgba(214, 58, 76, .14); color: #B3263A; }
+:root[data-tema="claro"] .mz-nivel[data-nivel="alta"] { background: rgba(214, 137, 16, .16); color: #8A5600; }
+:root[data-tema="claro"] .mz-nivel[data-nivel="normal"] { background: rgba(33, 96, 196, .12); color: #1D4F9E; }
+:root[data-tema="claro"] .mz-nivel[data-nivel="tranquila"] { background: rgba(90, 72, 214, .12); color: #4535B0; }
+:root[data-tema="claro"] .mz-nueva, :root[data-tema="claro"] .mz-vacio-zonas b, :root[data-tema="claro"] .more { color: #5B7A00 !important; }
+:root[data-tema="claro"] .mz-nueva[aria-pressed="true"] { color: #12092E !important; }
+:root[data-tema="claro"] .sube { color: #1E8A6A; }
+@media (prefers-color-scheme: light) {
+:root[data-tema="auto"] .mz-nivel[data-nivel="caliente"] { background: rgba(214, 58, 76, .14); color: #B3263A; }
+:root[data-tema="auto"] .mz-nivel[data-nivel="alta"] { background: rgba(214, 137, 16, .16); color: #8A5600; }
+:root[data-tema="auto"] .mz-nivel[data-nivel="normal"] { background: rgba(33, 96, 196, .12); color: #1D4F9E; }
+:root[data-tema="auto"] .mz-nivel[data-nivel="tranquila"] { background: rgba(90, 72, 214, .12); color: #4535B0; }
+:root[data-tema="auto"] .mz-nueva, :root[data-tema="auto"] .mz-vacio-zonas b, :root[data-tema="auto"] .more { color: #5B7A00 !important; }
+:root[data-tema="auto"] .mz-nueva[aria-pressed="true"] { color: #12092E !important; }
+:root[data-tema="auto"] .sube { color: #1E8A6A; }
+}

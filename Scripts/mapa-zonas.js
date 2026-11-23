@@ -244,6 +244,14 @@
   const hexA = (h, a) => `rgba(${parseInt(h.slice(1, 3), 16)},${parseInt(h.slice(3, 5), 16)},${parseInt(h.slice(5, 7), 16)},${a})`;
   const colorLocalidad = (i, a = 1) => hexA(PALETA_LOC[i % PALETA_LOC.length], a);
 
+  // Tema: en claro el mapa va en papel (fondo claro, líneas oscuras)
+  const esClaro = () => { const t = document.documentElement.dataset.tema; return t === 'claro' || (t === 'auto' && matchMedia('(prefers-color-scheme: light)').matches); };
+  const T = () => esClaro()
+    ? { calle: 'rgba(30,24,70,.22)', avenida: 'rgba(30,24,70,.5)', borde: 'rgba(30,24,70,.35)', cob: 'rgba(30,24,70,.45)', resalte: '#1B1370', relleno: 'rgba(27,19,112,.06)', etiFondo: 'rgba(255,255,255,.92)', etiTexto: '#1B1370', alfaLoc: 0.22 }
+    : { calle: 'rgba(214,208,255,.16)', avenida: 'rgba(230,226,255,.32)', borde: 'rgba(236,233,248,.26)', cob: 'rgba(236,233,248,.32)', resalte: '#FFFFFF', relleno: 'rgba(255,255,255,.08)', etiFondo: 'rgba(18,12,82,.82)', etiTexto: '#F4F2FF', alfaLoc: 0.3 };
+  document.addEventListener('le:tema', () => { callesSucias = true; if (typeof arrancar === 'function') arrancar(); });
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { callesSucias = true; arrancar(); });
+
   // ---------- Estado ----------
   let zonas = [];        // zonas de reparto (editables)
   let territorio = [];   // localidades (solo lectura)
@@ -555,8 +563,8 @@ $$;
     if (!capas.calles || !calles) return;
     const trazo = (l) => { c.beginPath(); for (const pts of l) pts.forEach(([lo, la], i) => { const [x, y] = aPx(lo, la); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); };
     c.lineJoin = 'round';
-    c.strokeStyle = 'rgba(214,208,255,.16)'; c.lineWidth = 0.6; trazo(calles.ca);
-    c.strokeStyle = 'rgba(230,226,255,.32)'; c.lineWidth = 1.1; trazo(calles.av);
+    c.strokeStyle = T().calle; c.lineWidth = 0.6; trazo(calles.ca);
+    c.strokeStyle = T().avenida; c.lineWidth = 1.1; trazo(calles.av);
   }
 
   function pintarCalor() {
@@ -622,8 +630,8 @@ $$;
     if (capas.localidades) {
       territorio.forEach((t, i) => {
         trazar(t);
-        if (t.tipo !== 'rural') { ctx.fillStyle = colorLocalidad(i, zonas.length ? 0.18 : 0.3); ctx.fill('evenodd'); }
-        ctx.strokeStyle = 'rgba(236,233,248,.26)'; ctx.lineWidth = 0.7; ctx.setLineDash(t.aproximado ? [1.5, 4] : [3, 4]); ctx.stroke(); ctx.setLineDash([]);
+        if (t.tipo !== 'rural') { ctx.fillStyle = colorLocalidad(i, zonas.length ? T().alfaLoc * 0.6 : T().alfaLoc); ctx.fill('evenodd'); }
+        ctx.strokeStyle = T().borde; ctx.lineWidth = 0.7; ctx.setLineDash(t.aproximado ? [1.5, 4] : [3, 4]); ctx.stroke(); ctx.setLineDash([]);
       });
     }
     if (capas.calor) { ctx.globalAlpha = zonas.length ? 0.6 : 1; ctx.drawImage(capaCalor, panX, panY, W * zoom, H * zoom); ctx.globalAlpha = 1; }
@@ -635,13 +643,13 @@ $$;
     });
     ctx.restore();
     // borde suave de la cobertura
-    ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(236,233,248,.32)'; ctx.lineWidth = 0.9; ctx.stroke(cob); ctx.setLineDash([]);
+    ctx.setLineDash([4, 5]); ctx.strokeStyle = T().cob; ctx.lineWidth = 0.9; ctx.stroke(cob); ctx.setLineDash([]);
     const L = lista();
-    if (encima && !(encima.t === tipo && encima.i === elegida) && modo !== 'dibujar') { const o = (encima.t === 'localidades' ? territorio : zonas)[encima.i]; if (o) { trazar(o); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.stroke(); } }
+    if (encima && !(encima.t === tipo && encima.i === elegida) && modo !== 'dibujar') { const o = (encima.t === 'localidades' ? territorio : zonas)[encima.i]; if (o) { trazar(o); ctx.strokeStyle = T().resalte; ctx.lineWidth = 2; ctx.stroke(); } }
     if (elegida !== null && L[elegida]) {
       trazar(L[elegida]);
-      ctx.fillStyle = 'rgba(255,255,255,.08)'; ctx.fill('evenodd');
-      ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.6; ctx.stroke();
+      ctx.fillStyle = T().relleno; ctx.fill('evenodd');
+      ctx.strokeStyle = T().resalte; ctx.lineWidth = 2.6; ctx.stroke();
     }
     // nombres
     if (capas.localidades) {
@@ -663,7 +671,7 @@ $$;
         if (x < -80 || y < -20 || x > W + 80 || y > H + 20) return;
         const corto = z.nombre.replace(/^(Funza|Soacha) · /, '').replace(/^Comuna (\d) · /, 'C$1 · ').split(' · ')[0];
         if (!sel && (zoom < 1.6 && areaKm2(z) < 6 || W < 640 && zoom < 2.2)) return;   // nombres chicos (o en pantallas chicas) solo al acercar
-        etiqueta(corto, x, y, 'rgba(18,12,82,.82)', '#F4F2FF');
+        etiqueta(corto, x, y, T().etiFondo, T().etiTexto);
       });
     }
     // edición
