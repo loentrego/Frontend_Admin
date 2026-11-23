@@ -614,25 +614,26 @@ $$;
         const n = statsLocalidad(t).nivel;
         trazar(t);
         ctx.fillStyle = `rgba(${hex2rgb(n.color)},${t.tipo === 'rural' ? 0.08 : 0.2})`; ctx.fill('evenodd');
-        ctx.strokeStyle = 'rgba(236,233,248,.5)'; ctx.lineWidth = 1; ctx.setLineDash(t.aproximado ? [4, 4] : []); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = 'rgba(236,233,248,.26)'; ctx.lineWidth = 0.7; ctx.setLineDash(t.aproximado ? [1.5, 4] : [3, 4]); ctx.stroke(); ctx.setLineDash([]);
       });
       if (capas.calor) ctx.drawImage(capaCalor, panX, panY, W * zoom, H * zoom);
     } else {
       // localidades como referencia tenue debajo
-      ctx.strokeStyle = 'rgba(236,233,248,.14)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(236,233,248,.12)'; ctx.lineWidth = 0.6; ctx.setLineDash([2, 5]);
       territorio.forEach((t) => { trazar(t); ctx.stroke(); });
+      ctx.setLineDash([]);
       if (capas.calor) { ctx.globalAlpha = 0.55; ctx.drawImage(capaCalor, panX, panY, W * zoom, H * zoom); ctx.globalAlpha = 1; }
       zonas.forEach((z) => {
         trazar(z);
         const col = z.repartidores.length ? riderColor(z.repartidores[0]) : null;
         if (col) { ctx.fillStyle = `rgba(${hex2rgb(col)},.26)`; ctx.fill('evenodd'); }
         else { ctx.save(); ctx.clip('evenodd'); ctx.strokeStyle = 'rgba(236,233,248,.18)'; ctx.lineWidth = 1; ctx.beginPath(); for (let k = -H; k < W; k += 9) { ctx.moveTo(k, 0); ctx.lineTo(k + H, H); } ctx.stroke(); ctx.restore(); trazar(z); }
-        ctx.strokeStyle = col ? `rgba(${hex2rgb(col)},.95)` : 'rgba(236,233,248,.55)'; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = col ? `rgba(${hex2rgb(col)},.7)` : 'rgba(236,233,248,.45)'; ctx.lineWidth = 0.9; ctx.stroke(); ctx.setLineDash([]);
       });
     }
     ctx.restore();
     // borde suave de la cobertura
-    ctx.strokeStyle = 'rgba(236,233,248,.35)'; ctx.lineWidth = 1.2; ctx.stroke(cob);
+    ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(236,233,248,.32)'; ctx.lineWidth = 0.9; ctx.stroke(cob); ctx.setLineDash([]);
     const L = lista();
     if (encima !== null && encima !== elegida && L[encima] && modo !== 'dibujar') { trazar(L[encima]); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.stroke(); }
     if (elegida !== null && L[elegida]) {
