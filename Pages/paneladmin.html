@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=4">
+<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=6">
 <link rel="icon" href="../img/icons/icon-192.png">
 </head>
 <body>
@@ -131,6 +131,21 @@
       <div class="mz-grid">
         <article class="card mz-mapa-card">
           <header class="mz-barra-sup">
+            <div class="seg" id="mz-modo" role="group" aria-label="Modo del mapa">
+              <button type="button" data-mz-modo="ver" aria-pressed="true">Ver</button>
+              <button type="button" data-mz-modo="editar" aria-pressed="false">Editar zonas</button>
+              <button type="button" data-mz-modo="dibujar" aria-pressed="false">+ Nueva zona</button>
+              <button type="button" data-mz-modo="probar" aria-pressed="false">Probar punto</button>
+            </div>
+            <div class="mz-archivos" role="group" aria-label="Archivos de zonas">
+              <button type="button" class="mz-boton" data-mz-accion="importar" title="Cargar zonas desde un archivo GeoJSON">Importar GeoJSON</button>
+              <button type="button" class="mz-boton" data-mz-accion="exportar" title="Descargar las zonas como GeoJSON (WGS84)">Exportar GeoJSON</button>
+              <button type="button" class="mz-boton" data-mz-accion="sql" title="Descargar SQL listo para PostGIS">SQL PostGIS</button>
+              <button type="button" class="mz-boton" data-mz-accion="validar" title="Buscar solapes, huecos y polígonos cruzados">Validar</button>
+              <input type="file" id="mz-archivo" accept=".geojson,.json,application/geo+json,application/json" hidden>
+            </div>
+          </header>
+          <div class="mz-barra-sup mz-barra-capas">
             <div class="chips" id="mz-capas" role="toolbar" aria-label="Capas del mapa">
               <button type="button" class="chip" data-capa="calor" aria-pressed="true">Calor</button>
               <button type="button" class="chip" data-capa="zonas" aria-pressed="true">Zonas</button>
@@ -141,15 +156,23 @@
               <button type="button" data-periodo="hoy" aria-pressed="true">Hoy</button>
               <button type="button" data-periodo="semana" aria-pressed="false">7 días</button>
             </div>
-          </header>
+          </div>
           <div class="mz-lienzo">
             <canvas id="mz-mapa" role="img" aria-label="Mapa de Bogotá, Funza y Soacha con las zonas de reparto, el calor de pedidos y los repartidores"></canvas>
             <div class="mz-tip" id="mz-tip" hidden></div>
+            <div class="mz-zoom" role="group" aria-label="Zoom">
+              <button type="button" data-mz-accion="acercar" aria-label="Acercar">+</button>
+              <button type="button" data-mz-accion="alejar" aria-label="Alejar">−</button>
+              <button type="button" data-mz-accion="encuadrar" aria-label="Ver todo">⤢</button>
+            </div>
+            <p class="mz-aviso" id="mz-aviso" role="status" hidden></p>
           </div>
           <footer class="mz-leyenda">
-            <span class="mz-ley-calor"><i></i>Menos pedidos · Más pedidos</span>
+            <span class="mz-coord" title="Coordenada bajo el cursor (latitud, longitud · WGS84)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b id="mz-cursor">—</b></span>
+            <span class="mz-ley-calor"><i></i>Menos · más pedidos</span>
             <span><i class="mz-moto"></i>Repartidor</span>
-            <span class="mz-ley-nota">Datos de ejemplo · Calles © OpenStreetMap</span>
+            <span class="mz-guardado" id="mz-guardado">Se guarda en este navegador</span>
+            <button type="button" class="link-btn" data-mz-accion="restablecer">Restablecer zonas</button>
           </footer>
         </article>
         <aside class="mz-lado">
@@ -217,7 +240,7 @@
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<script src="../Scripts/mapa-zonas.js?v=3"></script>
-<script src="../Scripts/Scripts-paneladmin.js?v=3"></script>
+<script src="../Scripts/mapa-zonas.js?v=7"></script>
+<script src="../Scripts/Scripts-paneladmin.js?v=4"></script>
 </body>
 </html>

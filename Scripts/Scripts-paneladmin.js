@@ -32,6 +32,8 @@
     { id: 'r2', nombre: 'Laura Jiménez', celular: '3116547890', vehiculo: 'Moto · XYZ98K' },
     { id: 'r3', nombre: 'Andrés Torres', celular: '3204561278', vehiculo: 'Bicicleta' },
   ];
+  // El mapa de zonas usa esta lista para asignar repartidores a cada zona
+  window.LEAdmin = { riders: RIDERS };
   const ADMIN = { nombre: 'Fernando Ramírez', rol: 'Administrador general', correo: 'fernando@loentrego.com', celular: '300 123 4567' };
 
   // ---------- Utilidades ----------
