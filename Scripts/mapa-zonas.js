@@ -233,6 +233,9 @@
     return zonas0;
   }
 
+  const COB_LONLAT = Object.values(COBERTURA).map((pol) => pol.map(([la, lo]) => [lo, la]));
+  const enCobertura = ([lo, la]) => COB_LONLAT.some((r) => dentroAnillo(lo, la, r));
+
   // ---------- Estado ----------
   let zonas = [];        // zonas de reparto (editables)
   let territorio = [];   // localidades (solo lectura)
@@ -402,7 +405,7 @@ $$;
   }
 
   // ---------- Validación ----------
-  const LAT = [4.462, 4.812], LON = [-74.292, -74.012];
+  const LAT = [4.465, 4.808], LON = [-74.288, -74.016];
   function validar() {
     const res = { solapes: new Map(), huecos: 0, muestras: 0, cruzadas: [] };
     zonas.forEach((z) => z.partes.forEach((r) => { if (autoCruce(r)) res.cruzadas.push(z.nombre); }));
@@ -598,6 +601,10 @@ $$;
     if (!W) return;
     if (callesSucias) pintarCalles();
     ctx.clearRect(0, 0, W, H);
+    // todo se recorta a la zona de cobertura: fuera de ella no entregamos y no se dibuja nada
+    const cob = new Path2D();
+    Object.values(COBERTURA).forEach((pol) => { pol.forEach(([la, lo], i) => { const [x, y] = aPx(lo, la); i ? cob.lineTo(x, y) : cob.moveTo(x, y); }); cob.closePath(); });
+    ctx.save(); ctx.clip(cob, 'nonzero');
     ctx.drawImage(capaCalles, 0, 0, W, H);
     const fs = Math.max(10.5, Math.min(12.5, W / 72));
     ctx.font = `600 ${fs}px ${FUENTE_UI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -623,6 +630,9 @@ $$;
         ctx.strokeStyle = col ? `rgba(${hex2rgb(col)},.95)` : 'rgba(236,233,248,.55)'; ctx.lineWidth = 1.4; ctx.stroke();
       });
     }
+    ctx.restore();
+    // borde suave de la cobertura
+    ctx.strokeStyle = 'rgba(236,233,248,.35)'; ctx.lineWidth = 1.2; ctx.stroke(cob);
     const L = lista();
     if (encima !== null && encima !== elegida && L[encima] && modo !== 'dibujar') { trazar(L[encima]); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2; ctx.stroke(); }
     if (elegida !== null && L[elegida]) {
@@ -634,7 +644,17 @@ $$;
     if (capas.nombres && tipo === 'localidades') {
       L.forEach((z, i) => {
         if (tipo === 'localidades' && z.tipo === 'rural' && i !== elegida) return;
-        const [x, y] = aPx(...puntoEtiqueta(z));
+        // la etiqueta va en la parte de la localidad que está dentro de la cobertura
+        let pe = puntoEtiqueta(z);
+        if (tipo === 'localidades' && !enCobertura(pe)) {
+          const ring = parteMayor(z), pts = [];
+          const ys = ring.map((q) => q[1]), xs = ring.map((q) => q[0]);
+          for (let i = 1; i < 14; i++) for (let j = 1; j < 14; j++) { const q = [Math.min(...xs) + (Math.max(...xs) - Math.min(...xs)) * i / 14, Math.min(...ys) + (Math.max(...ys) - Math.min(...ys)) * j / 14]; if (dentroZona(q[0], q[1], z) && enCobertura(q)) pts.push(q); }
+          if (!pts.length) return;
+          pe = [pts.reduce((a, q) => a + q[0], 0) / pts.length, pts.reduce((a, q) => a + q[1], 0) / pts.length];
+          if (!enCobertura(pe) || !dentroZona(pe[0], pe[1], z)) pe = pts[Math.floor(pts.length / 2)];
+        }
+        const [x, y] = aPx(...pe);
         if (x < -80 || y < -20 || x > W + 80 || y > H + 20) return;
         const corto = z.nombre.replace(/^(Funza|Soacha) · /, '').replace(/^Comuna (\d) · /, 'C$1 · ').split(' · ')[0];
         if (tipo === 'localidades') {
