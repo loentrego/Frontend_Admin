@@ -1,8 +1,28 @@
-# Zonas de reparto: GeoJSON y PostGIS
+# Zonas: GeoJSON y PostGIS
 
-El panel admin (sección **Mapa**) edita las zonas de reparto como polígonos reales.
-Este documento explica el formato que exporta y cómo usarlo en el backend para la
-**autoasignación** de pedidos.
+La sección **Mapa** del panel admin maneja dos tipos de zona, ambos como polígonos
+WGS84 (EPSG:4326):
+
+| Tipo | Qué es | Se edita | Para qué |
+|------|--------|----------|----------|
+| **Localidades** | Las 19 localidades urbanas de Bogotá, 4 cuadrantes urbanos + zona rural de Funza y 6 comunas + corregimientos de Soacha (`Scripts/territorio.json`). | No (referencia) | Ver la demanda por localidad y armar reportes. |
+| **Zonas de reparto** | El área que atiende cada repartidor. | Sí | La **autoasignación** de pedidos. |
+
+El panel no rastrea la ubicación de los repartidores: solo muestra las zonas
+asignadas y la demanda de pedidos.
+
+### Fuentes de las localidades
+
+- **Bogotá**: localidades de *Code for Germany · click_that_hood* (`bogota.geojson`). No incluye Sumapaz, que es rural.
+- **Funza**: límite municipal de OpenStreetMap (relación 1413037, ODbL) y 35 barrios agrupados por **cuadrante**, tomados de datos municipales.
+- **Soacha**: límite municipal de OpenStreetMap (relación 1413196, ODbL).
+  - **Las 6 comunas son aproximadas**: no encontramos los límites oficiales en una fuente descargable.
+  - En el mapa se dibujan con borde discontinuo y la etiqueta "aprox.".
+  - Hay que reemplazarlas con el shapefile oficial de la Secretaría de Planeación de Soacha.
+- El script que arma el archivo está en `docs/territorio.py`. Ahí están las fuentes, la simplificación (unos 13 m) y los puntos de referencia de las comunas.
+
+Antes de usar las localidades en producción, revisa las licencias de las fuentes de
+Bogotá y de los barrios de Funza.
 
 ## 1. Formato del GeoJSON
 
@@ -57,12 +77,13 @@ Al importar, el panel acepta un `FeatureCollection`, un `Feature` suelto o una g
 
 ### Opción A: el SQL que genera el panel
 
-El botón **SQL PostGIS** descarga `zonas-loentrego.sql`, que hace todo esto:
+El menú **⋯ → Descargar SQL para PostGIS** descarga `zonas-loentrego.sql`, que hace todo esto:
 
 1. Activa la extensión `postgis`.
 2. Crea la tabla `zonas_reparto` con un índice espacial **GIST**.
-3. Inserta o actualiza cada zona (`ON CONFLICT (id) DO UPDATE`). Usa `ST_MakeValid` por si algún polígono quedó cruzado.
-4. Crea la función `zona_para_punto(lat, lon)`.
+3. Crea también la tabla `localidades`, con su propio índice espacial.
+4. Inserta o actualiza cada zona de reparto y cada localidad (`ON CONFLICT (id) DO UPDATE`). Usa `ST_MakeValid` por si algún polígono quedó cruzado.
+5. Crea las funciones `zona_para_punto(lat, lon)`, para la autoasignación, y `localidad_para_punto(lat, lon)`, para los reportes.
 
 ```bash
 psql "$DATABASE_URL" -f zonas-loentrego.sql
@@ -71,7 +92,7 @@ psql "$DATABASE_URL" -f zonas-loentrego.sql
 ### Opción B: importar el GeoJSON con `ogr2ogr`
 
 ```bash
-ogr2ogr -f PostgreSQL PG:"$DATABASE_URL" zonas-loentrego.geojson \
+ogr2ogr -f PostgreSQL PG:"$DATABASE_URL" zonas-reparto-loentrego.geojson \
   -nln zonas_reparto_import -nlt PROMOTE_TO_MULTI -lco GEOMETRY_NAME=geom -t_srs EPSG:4326
 ```
 
@@ -117,9 +138,12 @@ Recomendaciones:
 
 - Guarda el punto del pedido como `geography(Point, 4326)` o `geometry(Point, 4326)`. Si vas a buscar repartidores por distancia, crea también un índice GIST para esos puntos.
 - Si el resultado trae `dentro = false`, márcalo para revisión: la dirección quedó fuera de las zonas.
-- Antes de importar, usa **Validar** en el panel. Revisa solapes, huecos y polígonos que se cruzan, con una muestra cada unos 200 m.
+- Antes de importar, usa **⋯ → Revisar solapes y huecos** en el panel. Revisa solapes, huecos, polígonos cruzados y zonas sin repartidor, con una muestra cada unos 200 m.
 
 ## 4. Editar en el panel
+
+Todo esto se hace en la pestaña **Zonas de reparto**:
+
 
 - **Editar zonas**:
   - Arrastra un vértice para moverlo. Los vértices compartidos con zonas vecinas se mueven juntos, así no se abren huecos. Con <kbd>Alt</kbd> se mueve solo ese.
@@ -127,8 +151,11 @@ Recomendaciones:
   - Haz doble clic en un vértice para borrarlo.
   - Las coordenadas de cada vértice también se pueden escribir a mano.
 - **+ Nueva zona**: toca el mapa para poner cada vértice; se pegan a los vértices vecinos. Para cerrar, toca el primer punto, haz doble clic o pulsa <kbd>Enter</kbd>.
-- **Probar punto**: escribe `latitud, longitud` o toca el mapa.
-- Los cambios se guardan en el navegador (`localStorage`, clave `loentrego-admin-zonas-v1`) hasta que exista el backend. Para conservarlos o compartirlos, **exporta el GeoJSON**.
+- **Probar punto**: escribe `latitud, longitud` o toca el mapa. Muestra la localidad y la zona de reparto, con sus repartidores.
+- Los cambios se guardan en el navegador (`localStorage`, clave `loentrego-admin-zonas-v1`) hasta que exista el backend. Para conservarlos o compartirlos, usa **⋯ → Exportar GeoJSON**.
 
-Desde el código, `window.LEMapa.zonasGeoJSON()` devuelve las zonas actuales y
-`window.LEMapa.asignar(lat, lon)` aplica la misma regla de autoasignación.
+Desde el código:
+
+- `window.LEMapa.zonasGeoJSON()` devuelve las zonas de reparto.
+- `window.LEMapa.localidadesGeoJSON()` devuelve las localidades.
+- `window.LEMapa.asignar(lat, lon)` aplica la regla de autoasignación y además devuelve la localidad del punto.

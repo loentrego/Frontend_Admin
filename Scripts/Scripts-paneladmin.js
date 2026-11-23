@@ -32,6 +32,9 @@
     { id: 'r2', nombre: 'Laura Jiménez', celular: '3116547890', vehiculo: 'Moto · XYZ98K' },
     { id: 'r3', nombre: 'Andrés Torres', celular: '3204561278', vehiculo: 'Bicicleta' },
   ];
+  // Cada repartidor tiene un color (el mismo en el mapa de zonas)
+  const COLORES_REP = ['#8FD3FF', '#FFB547', '#FF8FB1', '#7EE0C3', '#C3B9FF', '#B5DB2E', '#FF9F6E', '#6FA8FF'];
+  const riderStyle = (id) => `style="--c:${COLORES_REP[Math.max(0, RIDERS.findIndex((r) => r.id === id)) % COLORES_REP.length]}"`;
   // El mapa de zonas usa esta lista para asignar repartidores a cada zona
   window.LEAdmin = { riders: RIDERS };
   const ADMIN = { nombre: 'Fernando Ramírez', rol: 'Administrador general', correo: 'fernando@loentrego.com', celular: '300 123 4567' };
@@ -200,17 +203,17 @@
     $('#kpis').innerHTML = `
       <article class="kpi kpi-hero"><span class="kpi-label">Pedidos de hoy</span><b class="kpi-value" data-count-to="${k.total}">${k.total}</b>
         <span class="kpi-bar"><i style="--w:${pct}%"></i></span><span class="kpi-foot">${pct}% entregado</span></article>
-      <article class="kpi"><span class="kpi-label"><i class="dot" data-tono="move"></i>En curso</span><b class="kpi-value" data-count-to="${k.curso}">${k.curso}</b></article>
-      <article class="kpi"><span class="kpi-label"><i class="dot" data-tono="ok"></i>Entregados</span><b class="kpi-value" data-count-to="${k.entregados}">${k.entregados}</b></article>
-      <article class="kpi"><span class="kpi-label"><i class="dot" data-tono="fail"></i>Novedades</span><b class="kpi-value" data-count-to="${k.novedades}">${k.novedades}</b></article>
-      <article class="kpi kpi-money"><span class="kpi-label">Efectivo cobrado</span><b class="kpi-value" data-money="1" data-count-to="${k.cobrado}">${money(k.cobrado)}</b><span class="kpi-foot">${money(k.porCobrar)} por cobrar</span></article>`;
+      <article class="kpi" data-tono="cielo"><span class="kpi-label"><i class="dot" data-tono="move"></i>En curso</span><b class="kpi-value" data-count-to="${k.curso}">${k.curso}</b></article>
+      <article class="kpi" data-tono="menta"><span class="kpi-label"><i class="dot" data-tono="ok"></i>Entregados</span><b class="kpi-value" data-count-to="${k.entregados}">${k.entregados}</b></article>
+      <article class="kpi" data-tono="coral"><span class="kpi-label"><i class="dot" data-tono="fail"></i>Novedades</span><b class="kpi-value" data-count-to="${k.novedades}">${k.novedades}</b></article>
+      <article class="kpi kpi-money" data-tono="ambar"><span class="kpi-label">Efectivo cobrado</span><b class="kpi-value" data-money="1" data-count-to="${k.cobrado}">${money(k.cobrado)}</b><span class="kpi-foot">${money(k.porCobrar)} por cobrar</span></article>`;
 
     $('#riders-today').innerHTML = RIDERS.map((r) => {
       const mine = all.filter((o) => riderOf(o) === r.id);
       const done = mine.filter((o) => FINALES.includes(o.estado)).length;
       const cash = mine.filter((o) => o.estado === 'entregado').reduce((s, o) => s + (o.cobro || 0), 0);
       return `<li class="rt-row">
-        <span class="avatar">${initials(r.nombre)}</span>
+        <span class="avatar rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span>
         <span class="rt-main"><b>${r.nombre}</b><span class="rt-bar"><i style="--w:${mine.length ? (done / mine.length) * 100 : 0}%"></i></span></span>
         <span class="rt-side"><b>${done}/${mine.length}</b><small>${money(cash)}</small></span>
       </li>`;
@@ -266,7 +269,7 @@
       box.innerHTML = RIDERS.map((r) => {
         const mine = list.filter((o) => riderOf(o) === r.id);
         if (!mine.length) return '';
-        return `<section class="group"><header class="group-head"><span class="avatar">${initials(r.nombre)}</span>
+        return `<section class="group"><header class="group-head"><span class="avatar rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span>
           <span><b>${r.nombre}</b><small>${phone(r.celular)} · ${r.vehiculo}</small></span>
           <span class="group-count">${mine.length} pedido${mine.length === 1 ? '' : 's'}</span></header>
           <div class="rows">${mine.map(orderRow).join('')}</div></section>`;
@@ -339,7 +342,7 @@
       const pend = mine.filter((o) => !FINALES.includes(o.estado)).reduce((s, o) => s + (o.cobro || 0), 0);
       const fails = mine.filter((o) => o.estado === 'no_entregado').length;
       return `<article class="rider-card">
-        <header><span class="avatar lg">${initials(r.nombre)}</span><span><b>${r.nombre}</b><small>${r.vehiculo} · ${phone(r.celular)}</small></span>
+        <header><span class="avatar lg rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span><span><b>${r.nombre}</b><small>${r.vehiculo} · ${phone(r.celular)}</small></span>
           <a class="icon-link" href="https://wa.me/57${r.celular}" target="_blank" rel="noopener" aria-label="Escribir a ${r.nombre} por WhatsApp">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4Z"/><path d="M9 9.5c.3 2 2.5 4.2 4.5 4.5l1-1.3 2 .9c-.3 1.3-1.4 2-2.7 1.8-3-.5-5.7-3.2-6.2-6.2-.2-1.3.5-2.4 1.8-2.7l.9 2Z"/></svg></a></header>
         <div class="rc-progress"><span><b>${done}</b> de ${mine.length} completados</span><span class="rt-bar"><i style="--w:${mine.length ? (done / mine.length) * 100 : 0}%"></i></span></div>
