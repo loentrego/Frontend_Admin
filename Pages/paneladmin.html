@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=15">
+<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=18">
 <link rel="icon" href="../img/icons/icon-192.png">
 </head>
 <body>
@@ -35,6 +35,10 @@
       <a href="#repartidores" data-nav="repartidores">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h4l3-6h4l1 6M13 11l-2-4H8"/></svg>
         <span>Repartidores</span>
+      </a>
+      <a href="#comercios" data-nav="comercios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5 4.5 4h15L21 9.5M3 9.5h18M3 9.5a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v8h14v-8M10 20v-5h4v5"/></svg>
+        <span>Comercios</span>
       </a>
       <a href="#mapa" data-nav="mapa">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 4-6 2.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5Z"/><path d="M9 4v13.5M15 6.5V20"/></svg>
@@ -122,7 +126,13 @@
 
     <!-- ===== Repartidores ===== -->
     <section class="view" id="view-repartidores" hidden>
-      <div class="rider-grid" id="riders"></div>
+      <div class="st-grid" id="riders"></div>
+    </section>
+
+    <!-- ===== Comercios ===== -->
+    <section class="view" id="view-comercios" hidden>
+      <div class="kpis st-kpis" id="com-kpis"></div>
+      <div class="st-grid" id="comercios"></div>
     </section>
 
     <!-- ===== Mapa de zonas (pantalla completa, menús flotantes) ===== -->
@@ -259,6 +269,6 @@
 
 <script src="../Scripts/vendor/polygon-clipping.min.js"></script>
 <script src="../Scripts/mapa-zonas.js?v=15"></script>
-<script src="../Scripts/Scripts-paneladmin.js?v=6"></script>
+<script src="../Scripts/Scripts-paneladmin.js?v=8"></script>
 </body>
 </html>

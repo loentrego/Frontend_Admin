@@ -170,6 +170,7 @@
     resumen: { title: 'Resumen del día', render: renderResumen },
     pedidos: { title: 'Pedidos', render: renderPedidos },
     repartidores: { title: 'Repartidores', render: renderRepartidores },
+    comercios: { title: 'Comercios', render: renderComercios },
     mapa: { title: 'Mapa de zonas', render: () => window.LEMapa && window.LEMapa.montar() },
     enlaces: { title: 'Enlaces de registro', render: renderEnlaces },
     intercambio: { title: 'Intercambio de repartidor', render: renderIntercambio },
@@ -337,23 +338,119 @@
     currentId = null;
   }
 
-  // ---------- Repartidores ----------
+  // ---------- Estadísticas: utilidades compartidas (Repartidores y Comercios) ----------
+  //  Las cifras de hoy salen de los pedidos; el histórico de la semana es de ejemplo
+  //  (determinístico por id) hasta tener el backend.
+  const COMERCIOS = [
+    { id: 'tienda-central', nombre: 'Tienda Central', categoria: 'Tienda de barrio', contacto: 'Diana Rojas', celular: '3001112233', zona: 'Chapinero', desde: 'mar 2024' },
+    { id: 'moda-kira', nombre: 'Moda Kira', categoria: 'Ropa y accesorios', contacto: 'Kira Méndez', celular: '3154448899', zona: 'Usaquén', desde: 'jul 2023' },
+    { id: 'cafe-origen', nombre: 'Café Origen', categoria: 'Café y tostado', contacto: 'Julián Prieto', celular: '3205557711', zona: 'Teusaquillo', desde: 'ene 2025' },
+    { id: 'libreria-paramo', nombre: 'Librería Páramo', categoria: 'Libros', contacto: 'Sara Cifuentes', celular: '3016663322', zona: 'La Candelaria', desde: 'sep 2024' },
+    { id: 'verde-market', nombre: 'Verde Market', categoria: 'Mercado orgánico', contacto: 'Tomás Gil', celular: '3127774455', zona: 'Funza', desde: 'may 2025' },
+  ];
+  const comercioDe = (o) => o.comercio || 'Tienda Central';
+  const semilla = (txt) => { let h = 2166136261; for (const c of String(txt)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 13), 1274126177)) >>> 0) / 4294967296; };
+  const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  function semana(id, base) {
+    const r = semilla(id);
+    return DIAS.map((d, i) => Math.max(0, Math.round(base * (0.55 + r() * 0.9) * (i === 6 ? 0.4 : i === 5 ? 0.75 : 1))));
+  }
+  const mins = (hhmm) => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; };
+  function tiempoEntrega(lista) {
+    const t = lista.filter((o) => o.estado === 'entregado').map((o) => {
+      const h = o.historial || [], a = h.find((x) => x[0] === 'recogido') || h[0], b = h.find((x) => x[0] === 'entregado');
+      return a && b ? mins(b[1]) - mins(a[1]) : null;
+    }).filter((x) => x !== null && x >= 0);
+    return t.length ? Math.round(t.reduce((s, x) => s + x, 0) / t.length) : null;
+  }
+  function resumen(lista) {
+    const entregados = lista.filter((o) => o.estado === 'entregado').length;
+    const novedades = lista.filter((o) => o.estado === 'no_entregado').length;
+    const cerrados = entregados + novedades;
+    return {
+      total: lista.length, entregados, novedades, curso: lista.length - cerrados,
+      efectividad: cerrados ? Math.round((entregados / cerrados) * 100) : null,
+      cobrado: lista.filter((o) => o.estado === 'entregado').reduce((s, o) => s + (o.cobro || 0), 0),
+      porCobrar: lista.filter((o) => !FINALES.includes(o.estado)).reduce((s, o) => s + (o.cobro || 0), 0),
+      tiempo: tiempoEntrega(lista),
+    };
+  }
+  function barras(datos, color) {
+    const max = Math.max(1, ...datos);
+    return `<div class="st-barras" style="--c:${color}">${datos.map((v, i) => `<span title="${DIAS[i]}: ${v} pedidos"><i style="--h:${(v / max) * 100}%"></i><small>${DIAS[i]}</small></span>`).join('')}</div>`;
+  }
+  const dato = (tono, label, valor, pie = '') => `<div class="st-dato" data-tono="${tono}"><dt>${label}</dt><dd>${valor}</dd>${pie ? `<small>${pie}</small>` : ''}</div>`;
+  function zonasDe(riderId) {
+    // zonas guardadas por el mapa; si aún no se ha abierto, las iniciales (una por repartidor según el mapa)
+    const INICIALES = { r1: 3, r2: 4, r3: 3, r4: 1, r5: 1, r6: 1, r7: 1 };
+    try { const d = JSON.parse(localStorage.getItem('loentrego-admin-zonas-v1') || 'null'); return d ? d.zonas.filter((z) => (z.repartidores || []).includes(riderId)).length : (INICIALES[riderId] ?? 0); } catch { return INICIALES[riderId] ?? 0; }
+  }
+
+  // ---------- Repartidores: estadísticas por repartidor ----------
   function renderRepartidores() {
     const all = store.all();
-    $('#riders').innerHTML = RIDERS.map((r) => {
+    $('#riders').innerHTML = RIDERS.map((r, idx) => {
       const mine = all.filter((o) => riderOf(o) === r.id);
-      const done = mine.filter((o) => FINALES.includes(o.estado)).length;
-      const cash = mine.filter((o) => o.estado === 'entregado').reduce((s, o) => s + (o.cobro || 0), 0);
-      const pend = mine.filter((o) => !FINALES.includes(o.estado)).reduce((s, o) => s + (o.cobro || 0), 0);
-      const fails = mine.filter((o) => o.estado === 'no_entregado').length;
-      return `<article class="rider-card">
-        <header><span class="avatar lg rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span><span><b>${r.nombre}</b><small>${r.vehiculo} · ${phone(r.celular)}</small></span>
-          <a class="icon-link" href="https://wa.me/57${r.celular}" target="_blank" rel="noopener" aria-label="Escribir a ${r.nombre} por WhatsApp">
+      const s = resumen(mine);
+      const color = COLORES_REP[idx % COLORES_REP.length];
+      const sem = semana(r.id, 9);
+      const totalSem = sem.reduce((a, b) => a + b, 0);
+      const zonas = zonasDe(r.id);
+      const avance = s.total ? Math.round(((s.entregados + s.novedades) / s.total) * 100) : 0;
+      return `<article class="st-card" style="--c:${color}">
+        <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(r.nombre)}</span>
+          <span class="st-quien"><b>${esc(r.nombre)}</b><small>${esc(r.vehiculo)} · ${phone(r.celular)}</small></span>
+          <a class="icon-link" href="https://wa.me/57${r.celular}" target="_blank" rel="noopener" aria-label="Escribir a ${esc(r.nombre)} por WhatsApp">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4Z"/><path d="M9 9.5c.3 2 2.5 4.2 4.5 4.5l1-1.3 2 .9c-.3 1.3-1.4 2-2.7 1.8-3-.5-5.7-3.2-6.2-6.2-.2-1.3.5-2.4 1.8-2.7l.9 2Z"/></svg></a></header>
-        <div class="rc-progress"><span><b>${done}</b> de ${mine.length} completados</span><span class="rt-bar"><i style="--w:${mine.length ? (done / mine.length) * 100 : 0}%"></i></span></div>
-        <dl class="rc-stats"><div><dt>Cobrado</dt><dd>${money(cash)}</dd></div><div><dt>Por cobrar</dt><dd>${money(pend)}</dd></div><div><dt>Novedades</dt><dd>${fails}</dd></div></dl>
-        <ul class="rc-list">${mine.sort((a, b) => FINALES.includes(a.estado) - FINALES.includes(b.estado)).map((o) =>
-          `<li><button type="button" data-action="open-order" data-id="${o.id}"><span>${o.codigo}</span><b>${esc(o.nombre)}</b>${pill(o.estado)}</button></li>`).join('') || '<li class="muted">Sin pedidos asignados</li>'}</ul>
+        <div class="st-hoy"><span><b>${s.entregados + s.novedades}</b> de ${s.total} pedidos cerrados hoy</span><span class="st-pct">${avance}%</span></div>
+        <span class="st-barra"><i style="--w:${avance}%"></i></span>
+        <dl class="st-datos">
+          ${dato('menta', 'Efectividad', s.efectividad === null ? '—' : s.efectividad + '%', 'de los cerrados')}
+          ${dato('cielo', 'Tiempo prom.', s.tiempo === null ? '—' : s.tiempo + '<small> min</small>', 'por entrega')}
+          ${dato('coral', 'Novedades', s.novedades, 'hoy')}
+          ${dato('lima', 'Cobrado', money(s.cobrado), 'contraentrega')}
+          ${dato('ambar', 'Por cobrar', money(s.porCobrar), 'en ruta')}
+          ${dato('lavanda', 'Zonas', zonas === null ? '—' : zonas, 'en el mapa')}
+        </dl>
+        <div class="st-semana"><p><span>Últimos 7 días</span><b>${totalSem} pedidos</b></p>${barras(sem, color)}</div>
+      </article>`;
+    }).join('');
+  }
+
+  // ---------- Comercios: estadísticas por comercio ----------
+  function renderComercios() {
+    const all = store.all();
+    const filas = COMERCIOS.map((c) => ({ c, lista: all.filter((o) => comercioDe(o) === c.nombre) }));
+    const tot = resumen(all);
+    const activos = filas.filter((f) => f.lista.length).length;
+    $('#com-kpis').innerHTML = `
+      <div class="kpi kpi-hero"><span class="kpi-label">Comercios activos hoy</span><span class="kpi-value">${activos}<small style="font-size:.5em;opacity:.7"> / ${COMERCIOS.length}</small></span><span class="kpi-foot">con pedidos en el día</span></div>
+      <div class="kpi" data-tono="cielo"><span class="kpi-label">Pedidos hoy</span><span class="kpi-value">${tot.total}</span><span class="kpi-foot">${tot.curso} en curso</span></div>
+      <div class="kpi" data-tono="menta"><span class="kpi-label">Efectividad</span><span class="kpi-value">${tot.efectividad === null ? '—' : tot.efectividad + '%'}</span><span class="kpi-foot">entregados / cerrados</span></div>
+      <div class="kpi" data-tono="ambar"><span class="kpi-label">Recaudo del día</span><span class="kpi-value" style="font-size:1.6rem">${money(tot.cobrado)}</span><span class="kpi-foot">${money(tot.porCobrar)} por cobrar</span></div>`;
+    $('#comercios').innerHTML = filas.sort((a, b) => b.lista.length - a.lista.length).map(({ c, lista }, i) => {
+      const s = resumen(lista);
+      const color = COLORES_REP[(i + 3) % COLORES_REP.length];
+      const sem = semana(c.id, 6 + (c.id.length % 5));
+      const totalSem = sem.reduce((a, b) => a + b, 0);
+      const reps = [...new Set(lista.map(riderOf))].map((id) => rider(id).nombre.split(' ')[0]);
+      const ticket = lista.filter((o) => o.cobro).length ? Math.round(lista.filter((o) => o.cobro).reduce((x, o) => x + o.cobro, 0) / lista.filter((o) => o.cobro).length) : null;
+      return `<article class="st-card" style="--c:${color}">
+        <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(c.nombre)}</span>
+          <span class="st-quien"><b>${esc(c.nombre)}</b><small>${esc(c.categoria)} · ${esc(c.zona)}</small></span>
+          <a class="icon-link" href="https://wa.me/57${c.celular}" target="_blank" rel="noopener" aria-label="Escribir a ${esc(c.nombre)} por WhatsApp">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4Z"/><path d="M9 9.5c.3 2 2.5 4.2 4.5 4.5l1-1.3 2 .9c-.3 1.3-1.4 2-2.7 1.8-3-.5-5.7-3.2-6.2-6.2-.2-1.3.5-2.4 1.8-2.7l.9 2Z"/></svg></a></header>
+        <div class="st-hoy"><span>${s.total ? `<b>${s.total}</b> pedido${s.total > 1 ? 's' : ''} hoy · ${s.curso} en curso` : 'Sin pedidos hoy'}</span><span class="st-chip">Cliente desde ${esc(c.desde)}</span></div>
+        <dl class="st-datos">
+          ${dato('menta', 'Efectividad', s.efectividad === null ? '—' : s.efectividad + '%', 'de los cerrados')}
+          ${dato('cielo', 'Tiempo prom.', s.tiempo === null ? '—' : s.tiempo + '<small> min</small>', 'por entrega')}
+          ${dato('coral', 'Novedades', s.novedades, 'hoy')}
+          ${dato('lima', 'Recaudado', money(s.cobrado), 'contraentrega')}
+          ${dato('ambar', 'Ticket prom.', ticket === null ? '—' : money(ticket), 'por pedido')}
+          ${dato('lavanda', 'Repartidores', reps.length || '—', reps.join(', ') || 'sin asignar')}
+        </dl>
+        <div class="st-semana"><p><span>Últimos 7 días</span><b>${totalSem} pedidos</b></p>${barras(sem, color)}</div>
+        <p class="st-contacto">Contacto: <b>${esc(c.contacto)}</b> · ${phone(c.celular)}</p>
       </article>`;
     }).join('');
   }
