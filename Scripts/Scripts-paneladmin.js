@@ -58,30 +58,30 @@
   const KEY = 'loentrego-demo-v2';
   const EXTRAS_KEY = 'loentrego-demo-extras-v1';
   const SEED = [
-    { id: 'p1', codigo: 'LE-1041', nombre: 'Marcela Ortiz', direccion: 'Calle 116 #19-40, apto 302', zona: 'bogota', telefono: '3127890123', cobro: 32000, notas: 'Dejar con el celador', estado: 'entregado',
+    { id: 'p1', codigo: 'LOE-0001041', nombre: 'Marcela Ortiz', direccion: 'Calle 116 #19-40, apto 302', zona: 'bogota', telefono: '3127890123', cobro: 32000, notas: 'Dejar con el celador', estado: 'entregado',
       historial: [['por_recoger', '08:05'], ['recogido', '08:40'], ['en_camino', '08:52'], ['entregado', '09:31']] },
-    { id: 'p2', codigo: 'LE-1042', nombre: 'Andrea Gómez', direccion: 'Calle 72 #10-34', zona: 'bogota', telefono: '3001234567', cobro: 45000, notas: 'Entregar en portería, preguntar por Sr. Gómez', estado: 'en_camino',
+    { id: 'p2', codigo: 'LOE-0001042', nombre: 'Andrea Gómez', direccion: 'Calle 72 #10-34', zona: 'bogota', telefono: '3001234567', cobro: 45000, notas: 'Entregar en portería, preguntar por Sr. Gómez', estado: 'en_camino',
       historial: [['por_recoger', '08:12'], ['recogido', '08:40'], ['en_camino', '09:40']] },
-    { id: 'p3', codigo: 'LE-1043', nombre: 'Julián Ríos', direccion: 'Carrera 15 #8-21, casa 4', zona: 'funza', telefono: '3154567890', cobro: 28000, notas: 'Tocar el timbre de la reja verde', estado: 'recogido',
+    { id: 'p3', codigo: 'LOE-0001043', nombre: 'Julián Ríos', direccion: 'Carrera 15 #8-21, casa 4', zona: 'funza', telefono: '3154567890', cobro: 28000, notas: 'Tocar el timbre de la reja verde', estado: 'recogido',
       historial: [['por_recoger', '08:20'], ['recogido', '08:41']] },
-    { id: 'p4', codigo: 'LE-1044', nombre: 'Sofía Herrera', direccion: 'Calle 13 #7-45', zona: 'soacha', telefono: '3205558877', cobro: 0, notas: '', estado: 'por_recoger',
+    { id: 'p4', codigo: 'LOE-0001044', nombre: 'Sofía Herrera', direccion: 'Calle 13 #7-45', zona: 'soacha', telefono: '3205558877', cobro: 0, notas: '', estado: 'por_recoger',
       historial: [['por_recoger', '09:05']] },
-    { id: 'p5', codigo: 'LE-1045', nombre: 'Daniel Castro', direccion: 'Av. Boyacá #63-20', zona: 'bogota', telefono: '3112223344', cobro: 61500, notas: 'Llamar antes de llegar', estado: 'por_recoger',
+    { id: 'p5', codigo: 'LOE-0001045', nombre: 'Daniel Castro', direccion: 'Av. Boyacá #63-20', zona: 'bogota', telefono: '3112223344', cobro: 61500, notas: 'Llamar antes de llegar', estado: 'por_recoger',
       historial: [['por_recoger', '09:18']] },
-    { id: 'p6', codigo: 'LE-1040', nombre: 'Paula Medina', direccion: 'Calle 45 #22-10', zona: 'bogota', telefono: '3019876543', cobro: 19900, notas: '', estado: 'no_entregado', motivo: 'no_contesta',
+    { id: 'p6', codigo: 'LOE-0001040', nombre: 'Paula Medina', direccion: 'Calle 45 #22-10', zona: 'bogota', telefono: '3019876543', cobro: 19900, notas: '', estado: 'no_entregado', motivo: 'no_contesta',
       historial: [['por_recoger', '07:50'], ['recogido', '08:10'], ['en_camino', '08:15'], ['no_entregado', '08:48']] },
   ];
   // Pedidos de otros repartidores (solo los conoce el admin)
   const EXTRAS = [
-    { id: 'x1', codigo: 'LE-1030', nombre: 'Carolina Vega', direccion: 'Cra 7 #116-40, Usaquén', zona: 'bogota', telefono: '3108887766', cobro: 52300, notas: '', estado: 'entregado', repartidor: 'r2', comercio: 'Moda Kira',
+    { id: 'x1', codigo: 'LOE-0001030', nombre: 'Carolina Vega', direccion: 'Cra 7 #116-40, Usaquén', zona: 'bogota', telefono: '3108887766', cobro: 52300, notas: '', estado: 'entregado', repartidor: 'r2', comercio: 'Moda Kira',
       historial: [['por_recoger', '07:30'], ['recogido', '07:55'], ['en_camino', '08:05'], ['entregado', '08:40']] },
-    { id: 'x2', codigo: 'LE-1031', nombre: 'Felipe Rojas', direccion: 'Cl 127 #45-12, Suba', zona: 'bogota', telefono: '3157774411', cobro: 18500, notas: 'Apto 1204', estado: 'en_camino', repartidor: 'r2', comercio: 'Moda Kira',
+    { id: 'x2', codigo: 'LOE-0001031', nombre: 'Felipe Rojas', direccion: 'Cl 127 #45-12, Suba', zona: 'bogota', telefono: '3157774411', cobro: 18500, notas: 'Apto 1204', estado: 'en_camino', repartidor: 'r2', comercio: 'Moda Kira',
       historial: [['por_recoger', '07:40'], ['recogido', '08:00'], ['en_camino', '09:10']] },
-    { id: 'x3', codigo: 'LE-1032', nombre: 'Natalia Cruz', direccion: 'Calle 3 #12-08', zona: 'funza', telefono: '3014445566', cobro: 0, notas: '', estado: 'por_recoger', repartidor: 'r2', comercio: 'Moda Kira',
+    { id: 'x3', codigo: 'LOE-0001032', nombre: 'Natalia Cruz', direccion: 'Calle 3 #12-08', zona: 'funza', telefono: '3014445566', cobro: 0, notas: '', estado: 'por_recoger', repartidor: 'r2', comercio: 'Moda Kira',
       historial: [['por_recoger', '09:20']] },
-    { id: 'x4', codigo: 'LE-1033', nombre: 'Jorge Peña', direccion: 'Cra 68 #24-56, Kennedy', zona: 'bogota', telefono: '3209991122', cobro: 24800, notas: '', estado: 'recogido', repartidor: 'r3', comercio: 'Café Origen',
+    { id: 'x4', codigo: 'LOE-0001033', nombre: 'Jorge Peña', direccion: 'Cra 68 #24-56, Kennedy', zona: 'bogota', telefono: '3209991122', cobro: 24800, notas: '', estado: 'recogido', repartidor: 'r3', comercio: 'Café Origen',
       historial: [['por_recoger', '08:30'], ['recogido', '09:02']] },
-    { id: 'x5', codigo: 'LE-1034', nombre: 'Lina Morales', direccion: 'Cl 100 #15-30, Usaquén', zona: 'bogota', telefono: '3113332211', cobro: 37500, notas: 'Oficina 402', estado: 'entregado', repartidor: 'r3', comercio: 'Café Origen',
+    { id: 'x5', codigo: 'LOE-0001034', nombre: 'Lina Morales', direccion: 'Cl 100 #15-30, Usaquén', zona: 'bogota', telefono: '3113332211', cobro: 37500, notas: 'Oficina 402', estado: 'entregado', repartidor: 'r3', comercio: 'Café Origen',
       historial: [['por_recoger', '07:15'], ['recogido', '07:35'], ['en_camino', '07:40'], ['entregado', '08:12']] },
   ];
 
