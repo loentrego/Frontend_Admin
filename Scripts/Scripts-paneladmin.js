@@ -291,13 +291,13 @@
     }
     // Siempre agrupado por repartidor
     box.innerHTML = RIDERS.map((r) => {
-        const mine = list.filter((o) => riderOf(o) === r.id);
-        if (!mine.length) return '';
-        return `<section class="group"><header class="group-head"><span class="avatar rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span>
-          <span><b>${r.nombre}</b><small>${phone(r.celular)}</small></span>
-          <span class="group-count">${mine.length} pedido${mine.length === 1 ? '' : 's'}</span></header>
-          <div class="rows">${mine.map(orderRow).join('')}</div></section>`;
-      }).join('');
+      const mine = list.filter((o) => riderOf(o) === r.id);
+      if (!mine.length) return '';
+      return `<section class="group"><header class="group-head"><span class="avatar rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span>
+        <span><b>${r.nombre}</b><small>${phone(r.celular)}</small></span>
+        <span class="group-count">${mine.length} pedido${mine.length === 1 ? '' : 's'}</span></header>
+        <div class="rows">${mine.map(orderRow).join('')}</div></section>`;
+    }).join('');
   }
 
   // ---------- Buscador global ----------
