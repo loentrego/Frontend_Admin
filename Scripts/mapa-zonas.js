@@ -607,6 +607,71 @@ $$;
     })));
     return mejor;
   }
+  // Proyección de un punto (px) sobre un segmento (px)
+  function proyectar(x, y, pa, pb) {
+    const dx = pb[0] - pa[0], dy = pb[1] - pa[1], L = dx * dx + dy * dy || 1;
+    const t = ((x - pa[0]) * dx + (y - pa[1]) * dy) / L, qx = pa[0] + t * dx, qy = pa[1] + t * dy;
+    return { t, x: qx, y: qy, d: Math.hypot(x - qx, y - qy) };
+  }
+  // Imán a bordes: si no hay una esquina cerca, el punto se pega sobre el borde de otra zona
+  function imanBorde(x, y, excluir, tol = 10) {
+    let mejor = null, d = tol;
+    zonas.forEach((z) => z.partes.forEach((ring) => ring.forEach((a, i) => {
+      const b = ring[(i + 1) % ring.length];
+      if (excluir && [a, b].some((v) => v === excluir.v || (excluir.gemelos || []).includes(v))) return;
+      const q = proyectar(x, y, aPx(a[0], a[1]), aPx(b[0], b[1]));
+      if (q.t > 0 && q.t < 1 && q.d < d) { d = q.d; mejor = aGeo(q.x, q.y).map(r6); }
+    })));
+    return mejor;
+  }
+  // Une la zona con sus vecinas cuando quedan casi pegadas, para que no quede una franja sin repartidor.
+  // Las esquinas cercanas se pegan al borde de la vecina y las esquinas de la vecina se copian al borde
+  // de esta zona: así comparten el mismo borde exacto. Tolerancia: unos 32 px en pantalla (entre 40 y 400 m).
+  function pegarVecinas(z) {
+    const otras = zonas.filter((o) => o !== z);
+    if (!otras.length || !z.partes.length) return false;
+    const [lo0, la0] = z.partes[0][0];
+    const p1 = aPx(lo0, la0), p2 = aPx(lo0, la0 + 0.001);
+    const pxPorM = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 111.32;
+    const tol = Math.min(400, Math.max(40, 32 / pxPorM)) * pxPorM;
+    const respaldo = JSON.stringify(z.partes);
+    let cambio = false;
+    // a) esquinas de esta zona -> esquina o borde de la vecina más cercana
+    z.partes.forEach((ring) => ring.forEach((v) => {
+      const [x, y] = aPx(v[0], v[1]);
+      let dv = tol, vert = null, de = tol, borde = null;
+      otras.forEach((o) => o.partes.forEach((r) => r.forEach((w, i) => {
+        const [wx, wy] = aPx(w[0], w[1]), dd = Math.hypot(wx - x, wy - y);
+        if (dd < dv) { dv = dd; vert = w; }
+        const b = r[(i + 1) % r.length], q = proyectar(x, y, [wx, wy], aPx(b[0], b[1]));
+        if (q.t > 0.001 && q.t < 0.999 && q.d < de) { de = q.d; borde = { r, i, q }; }
+      })));
+      if (vert && dv <= de + 6) {
+        if (!mismo(v, vert)) { v[0] = vert[0]; v[1] = vert[1]; cambio = true; }
+      } else if (borde && borde.q.d > 0.01) {
+        const pt = aGeo(borde.q.x, borde.q.y).map(r6);
+        borde.r.splice(borde.i + 1, 0, [pt[0], pt[1]]);   // la vecina también tiene ese punto: borde compartido
+        v[0] = pt[0]; v[1] = pt[1]; cambio = true;
+      }
+    }));
+    // b) esquinas de las vecinas que quedan cerca de un borde de esta zona -> se agregan a ese borde
+    z.partes.forEach((ring) => {
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i], b = ring[(i + 1) % ring.length], pa = aPx(a[0], a[1]), pb = aPx(b[0], b[1]);
+        const cand = [];
+        otras.forEach((o) => o.partes.forEach((r) => r.forEach((w) => {
+          if (mismo(w, a) || mismo(w, b) || cand.some((c) => mismo(c.w, w))) return;
+          const [wx, wy] = aPx(w[0], w[1]), q = proyectar(wx, wy, pa, pb);
+          if (q.t > 0.001 && q.t < 0.999 && q.d < tol) cand.push({ w, t: q.t });
+        })));
+        if (cand.length) { cand.sort((m, n) => m.t - n.t); ring.splice(i + 1, 0, ...cand.map((c) => [c.w[0], c.w[1]])); i += cand.length; cambio = true; }
+      }
+    });
+    // limpieza: sin puntos repetidos; si el contorno quedó cruzado, se deja como estaba
+    z.partes = z.partes.map((ring) => ring.filter((v, i) => !mismo(v, ring[(i + 1) % ring.length])));
+    if (z.partes.some((ring) => ring.length < 3 || autoCruce(ring))) { z.partes = JSON.parse(respaldo); return false; }
+    return cambio;
+  }
   function etiqueta(texto, x, y, fondo, color, punto) {
     const w = ctx.measureText(texto).width + (punto ? 26 : 16);
     ctx.fillStyle = fondo;
@@ -816,7 +881,7 @@ $$;
           ${riders().map((r) => `<button type="button" role="radio" class="mz-rep-op" data-mz-rep="${esc(r.id)}" aria-checked="${repNuevo === r.id}" style="--c:${riderColor(r.id)}"><span class="mz-avatar" style="--c:${riderColor(r.id)}">${iniciales(r.nombre)}</span>${esc(r.nombre)}</button>`).join('')}
         </div>
         <p class="mz-paso${repNuevo ? '' : ' apagado'}"><span>2</span>Toca el mapa para marcar el contorno</p>
-        <p class="mz-vacio">${dibujo.length ? `${dibujo.length} punto${dibujo.length === 1 ? '' : 's'} marcados.` : 'Cada toque agrega una esquina.'} Para terminar toca el primer punto o pulsa <kbd>Enter</kbd>. Las zonas de alrededor se recortan solas para que no queden encima.</p>
+        <p class="mz-vacio">${dibujo.length ? `${dibujo.length} punto${dibujo.length === 1 ? '' : 's'} marcados.` : 'Cada toque agrega una esquina.'} Para terminar toca el primer punto o pulsa <kbd>Enter</kbd>. Las zonas de alrededor se recortan solas para que no queden encima, y si quedan casi pegadas se unen solas.</p>
         <div class="mz-acciones"><button type="button" class="btn-ghost" data-mz-accion="deshacer-punto" ${dibujo.length ? '' : 'disabled'}>Quitar último</button><button type="button" class="mz-btn-lima" data-mz-accion="cerrar-dibujo" ${listo ? '' : 'disabled'}>Crear zona</button></div>`;
       return;
     }
@@ -975,7 +1040,7 @@ $$;
       cursor = [lon, lat];
       arrancar();
       if (arrastre) {
-        const iman = imanVertice(x, y, arrastre);
+        const iman = imanVertice(x, y, arrastre) || imanBorde(x, y, arrastre);
         const nx = r6(iman ? iman[0] : lon), ny = r6(iman ? iman[1] : lat);
         for (const w of [arrastre.v, ...arrastre.gemelos]) { w[0] = nx; w[1] = ny; }
         return;
@@ -1002,7 +1067,7 @@ $$;
       if (arrastre) {
         arrastre = null;
         const z = zonas[elegida];
-        if (z) { const q = recortarVecinas(z); elegida = zonas.indexOf(z); if (q.length) aviso(`Se eliminaron zonas que quedaron cubiertas: ${q.map((x) => esc(x.nombre)).join(', ')}.`); }
+        if (z) { pegarVecinas(z); const q = recortarVecinas(z); elegida = zonas.indexOf(z); if (q.length) aviso(`Se eliminaron zonas que quedaron cubiertas: ${q.map((x) => esc(x.nombre)).join(', ')}.`); }
         guardar(); pintarDetalle(); return;
       }
       if (paneo && !paneo.movido) clic(x, y);
@@ -1023,7 +1088,7 @@ $$;
     if (modo === 'dibujar') {
       if (!repNuevo) { aviso('Primero elige el repartidor de la zona.', 'error'); return; }
       if (dibujo.length > 2) { const [fx, fy] = aPx(...dibujo[0]); if (Math.hypot(fx - x, fy - y) < 10) { cerrarDibujo(); return; } }
-      const iman = imanVertice(x, y);
+      const iman = imanVertice(x, y) || imanBorde(x, y);
       dibujo.push(iman ? [...iman] : [r6(lon), r6(lat)]);
       pintarDetalle(); return;
     }
@@ -1093,11 +1158,12 @@ $$;
     const mun = Object.entries(COBERTURA).find(([, pol]) => dentroAnillo(lo, la, pol.map(([y, x]) => [x, y])));
     const nueva = { id: `zona-${n}`, nombre: `Zona ${n}`, municipio: mun ? mun[0] : 'bogota', repartidores: [repNuevo], capacidad: PEDIDOS_POR_REPARTIDOR, prioridad: 0, partes: [dibujo.map((q) => [...q])] };
     zonas.push(nueva);
+    const pegada = pegarVecinas(nueva);
     const quitadas = recortarVecinas(nueva);
     dibujo = []; repNuevo = null;
     elegida = zonas.indexOf(nueva);
     cambiarModo('ver'); guardar(); pintarDetalle();
-    aviso(`Zona creada para <b>${esc(riderNombre(nueva.repartidores[0]))}</b>. Las zonas de alrededor se ajustaron a su borde.${quitadas.length ? `<br>Quedaron cubiertas por completo y se eliminaron: ${quitadas.map((z) => esc(z.nombre)).join(', ')}.` : ''}`);
+    aviso(`Zona creada para <b>${esc(riderNombre(nueva.repartidores[0]))}</b>. Las zonas de alrededor se ajustaron a su borde${pegada ? ' y se unieron las que estaban casi pegadas, para que no quede espacio sin repartidor' : ''}.${quitadas.length ? `<br>Quedaron cubiertas por completo y se eliminaron: ${quitadas.map((z) => esc(z.nombre)).join(', ')}.` : ''}`);
   }
   function probar(lat, lon) {
     if (!isFinite(lat) || !isFinite(lon)) { aviso('Escribe la coordenada como <b>latitud, longitud</b> (por ejemplo 4.6486, -74.0628).', 'error'); return; }
