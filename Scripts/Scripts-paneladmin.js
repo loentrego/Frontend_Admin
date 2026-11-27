@@ -517,9 +517,7 @@
       const avance = s.total ? Math.round(((s.entregados + s.novedades) / s.total) * 100) : 0;
       return `<article class="st-card" style="--c:${color}">
         <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(r.nombre)}</span>
-          <span class="st-quien"><b>${esc(r.nombre)}</b><small>${esc(r.vehiculo)} · ${phone(r.celular)}</small></span>
-          <a class="icon-link" href="https://wa.me/57${r.celular}" target="_blank" rel="noopener" aria-label="Escribir a ${esc(r.nombre)} por WhatsApp">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4Z"/><path d="M9 9.5c.3 2 2.5 4.2 4.5 4.5l1-1.3 2 .9c-.3 1.3-1.4 2-2.7 1.8-3-.5-5.7-3.2-6.2-6.2-.2-1.3.5-2.4 1.8-2.7l.9 2Z"/></svg></a></header>
+          <span class="st-quien"><b>${esc(r.nombre)}</b><small>${esc(r.vehiculo)} · ${phone(r.celular)}</small></span></header>
         <div class="st-hoy"><span><b>${s.entregados + s.novedades}</b> de ${s.total} pedidos cerrados hoy</span><span class="st-pct">${avance}%</span></div>
         <span class="st-barra"><i style="--w:${avance}%"></i></span>
         <dl class="st-datos">
@@ -553,9 +551,7 @@
       const ticket = lista.filter((o) => o.cobro).length ? Math.round(lista.filter((o) => o.cobro).reduce((x, o) => x + o.cobro, 0) / lista.filter((o) => o.cobro).length) : null;
       return `<article class="st-card" style="--c:${color}">
         <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(c.nombre)}</span>
-          <span class="st-quien"><b>${esc(c.nombre)}</b><small>${esc(c.categoria)} · ${esc(c.zona)}</small></span>
-          <a class="icon-link" href="https://wa.me/57${c.celular}" target="_blank" rel="noopener" aria-label="Escribir a ${esc(c.nombre)} por WhatsApp">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.4Z"/><path d="M9 9.5c.3 2 2.5 4.2 4.5 4.5l1-1.3 2 .9c-.3 1.3-1.4 2-2.7 1.8-3-.5-5.7-3.2-6.2-6.2-.2-1.3.5-2.4 1.8-2.7l.9 2Z"/></svg></a></header>
+          <span class="st-quien"><b>${esc(c.nombre)}</b><small>${esc(c.categoria)} · ${esc(c.zona)}</small></span></header>
         <div class="st-hoy"><span>${s.total ? `<b>${s.total}</b> pedido${s.total > 1 ? 's' : ''} hoy · ${s.curso} en curso` : 'Sin pedidos hoy'}</span><span class="st-chip">Cliente desde ${esc(c.desde)}</span></div>
         <dl class="st-datos">
           ${dato('menta', 'Efectividad', s.efectividad === null ? '—' : s.efectividad + '%', 'de los cerrados')}
