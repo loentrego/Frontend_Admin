@@ -202,12 +202,6 @@
   // Periodo del resumen (las cifras históricas son de ejemplo hasta tener el backend)
   const PERIODOS = { hoy: [1, 'de hoy', 'hoy'], mes: [26, 'del último mes', 'en 1 mes'], semestre: [156, 'de los últimos 6 meses', 'en 6 meses'], anio: [312, 'del último año', 'en 1 año'], historico: [720, 'desde el inicio', 'en total'] };
   let resPeriodo = 'hoy';
-  const REDES = {   // datos de ejemplo: [actual, nuevos por día]
-    google: { nota: 4.8, resenas: 214, nuevas: 0.6 },
-    instagram: { seguidores: 3840, nuevos: 9, alcance: 1250 },
-    facebook: { seguidores: 1920, nuevos: 3, alcance: 640 },
-  };
-  const estrellas = (n) => `<span class="estrellas" style="--n:${n}" aria-label="${n} de 5 estrellas">★★★★★</span>`;
   function renderResumen() {
     const all = store.all();
     const by = (f) => all.filter(f);
@@ -233,22 +227,15 @@
       <article class="kpi" data-tono="coral"><span class="kpi-label"><i class="dot" data-tono="fail"></i>Novedades</span><b class="kpi-value" data-count-to="${k.novedades}">${k.novedades}</b></article>
       <article class="kpi kpi-money" data-tono="ambar"><span class="kpi-label">Efectivo cobrado</span><b class="kpi-value" data-money="1" data-count-to="${k.cobrado}">${money(k.cobrado)}</b><span class="kpi-foot">${money(k.porCobrar)} por cobrar</span></article>`;
 
-    // Reputación y redes (ejemplo)
-    const g = REDES.google, ig = REDES.instagram, fb = REDES.facebook;
-    const nuevos = (x) => Math.round(x * f);
+    // Reputación y redes: todavía no están vinculadas
+    const pronto = '<div class="red-num"><span class="red-pronto">Muy pronto</span></div><p class="red-pie">Todavía no está vinculada.</p>';
     $('#redes').innerHTML = `
-      <article class="red-card" data-red="google"><header><span class="red-ico">G</span><b>Google Business</b><small>reseñas</small></header>
-        <div class="red-num"><b>${g.nota.toFixed(1)}</b>${estrellas(g.nota)}</div>
-        <p class="red-pie"><b>${fmt(g.resenas)}</b> reseñas · <span class="sube">+${nuevos(g.nuevas)}</span> ${corto}</p></article>
-      <article class="red-card" data-red="instagram"><header><span class="red-ico">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></span><b>Instagram</b><small>@loentrego</small></header>
-        <div class="red-num"><b>${fmt(ig.seguidores)}</b><span>seguidores</span></div>
-        <p class="red-pie"><span class="sube">+${fmt(nuevos(ig.nuevos))}</span> ${corto} · alcance ${fmt(nuevos(ig.alcance))}</p></article>
-      <article class="red-card" data-red="facebook"><header><span class="red-ico">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8a0 0 0 0 1 0 0Z"/></svg></span><b>Facebook</b><small>LoEntrego</small></header>
-        <div class="red-num"><b>${fmt(fb.seguidores)}</b><span>seguidores</span></div>
-        <p class="red-pie"><span class="sube">+${fmt(nuevos(fb.nuevos))}</span> ${corto} · alcance ${fmt(nuevos(fb.alcance))}</p></article>
-      <p class="red-nota">Datos de ejemplo · se conectarán con Google Business, Instagram y Facebook.</p>`;
+      <article class="red-card es-pronto" data-red="google"><header><span class="red-ico">G</span><b>Google Business</b><small>reseñas</small></header>${pronto}</article>
+      <article class="red-card es-pronto" data-red="instagram"><header><span class="red-ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></span><b>Instagram</b><small>@loentrego</small></header>${pronto}</article>
+      <article class="red-card es-pronto" data-red="facebook"><header><span class="red-ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8a0 0 0 0 1 0 0Z"/></svg></span><b>Facebook</b><small>LoEntrego</small></header>${pronto}</article>
+      <p class="red-nota">Google Business, Instagram y Facebook todavía no están vinculados. Muy pronto verás aquí las reseñas y los seguidores.</p>`;
 
     // Listas que se mueven hacia abajo (se duplican para un ciclo continuo)
     const filasRep = RIDERS.map((r) => {
@@ -438,11 +425,11 @@
   //  Las cifras de hoy salen de los pedidos; el histórico de la semana es de ejemplo
   //  (determinístico por id) hasta tener el backend.
   const COMERCIOS = [
-    { id: 'tienda-central', nombre: 'Tienda Central', categoria: 'Tienda de barrio', contacto: 'Diana Rojas', celular: '3001112233', zona: 'Chapinero', desde: 'mar 2024' },
-    { id: 'moda-kira', nombre: 'Moda Kira', categoria: 'Ropa y accesorios', contacto: 'Kira Méndez', celular: '3154448899', zona: 'Usaquén', desde: 'jul 2023' },
-    { id: 'cafe-origen', nombre: 'Café Origen', categoria: 'Café y tostado', contacto: 'Julián Prieto', celular: '3205557711', zona: 'Teusaquillo', desde: 'ene 2025' },
-    { id: 'libreria-paramo', nombre: 'Librería Páramo', categoria: 'Libros', contacto: 'Sara Cifuentes', celular: '3016663322', zona: 'La Candelaria', desde: 'sep 2024' },
-    { id: 'verde-market', nombre: 'Verde Market', categoria: 'Mercado orgánico', contacto: 'Tomás Gil', celular: '3127774455', zona: 'Funza', desde: 'may 2025' },
+    { id: 'tienda-central', nombre: 'Tienda Central', categoria: 'Tienda de barrio', celular: '3001112233', zona: 'Chapinero', desde: 'mar 2024' },
+    { id: 'moda-kira', nombre: 'Moda Kira', categoria: 'Ropa y accesorios', celular: '3154448899', zona: 'Usaquén', desde: 'jul 2023' },
+    { id: 'cafe-origen', nombre: 'Café Origen', categoria: 'Café y tostado', celular: '3205557711', zona: 'Teusaquillo', desde: 'ene 2025' },
+    { id: 'libreria-paramo', nombre: 'Librería Páramo', categoria: 'Libros', celular: '3016663322', zona: 'La Candelaria', desde: 'sep 2024' },
+    { id: 'verde-market', nombre: 'Verde Market', categoria: 'Mercado orgánico', celular: '3127774455', zona: 'Funza', desde: 'may 2025' },
   ];
   const comercioDe = (o) => o.comercio || 'Tienda Central';
   const semilla = (txt) => { let h = 2166136261; for (const c of String(txt)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 13), 1274126177)) >>> 0) / 4294967296; };
@@ -471,22 +458,46 @@
       tiempo: tiempoEntrega(lista),
     };
   }
-  // Pedidos por periodo (Hoy sale de los pedidos reales; lo demás es de ejemplo hasta tener el backend)
-  const PERIODOS_ST = [['hoy', 'Hoy'], ['semana', 'Semana'], ['mes', 'Mes'], ['6m', '6 meses'], ['ano', 'Año'], ['historico', 'Histórico']];
-  function periodos(id, base, hoy) {
-    const r = semilla(id + ':periodos');
-    const dia = base * (0.8 + r() * 0.4);
-    const sem = Math.round(dia * 6.2), mes = Math.round(sem * (4.1 + r() * 0.3));
-    const seis = Math.round(mes * (5.4 + r() * 0.8)), ano = Math.round(seis * (1.8 + r() * 0.3));
-    const historico = Math.round(ano * (1.3 + r() * 0.9));
-    const ef = () => 88 + Math.round(r() * 10);
-    return { hoy: { n: hoy.total, ef: hoy.efectividad }, semana: { n: sem, ef: ef() }, mes: { n: mes, ef: ef() }, '6m': { n: seis, ef: ef() }, ano: { n: ano, ef: ef() }, historico: { n: historico, ef: ef() } };
+  // Periodo de las métricas de Repartidores y Comercios. "Día" sale de los pedidos reales;
+  // lo demás es de ejemplo hasta tener el backend (vistas v_metricas_repartidor y v_metricas_comercio).
+  const PERIODOS_ST = { dia: ['del día', 'hoy', 1], semana: ['de la semana', 'en la semana', 6.2], mes: ['del mes', 'en el mes', 26], '6m': ['de los últimos 6 meses', 'en 6 meses', 150], ano: ['del año', 'en el año', 300], historico: ['de todo el histórico', 'en total', 520] };
+  let stPeriodo = 'dia';
+  function enPeriodo(id, base, hoy) {
+    if (stPeriodo === 'dia') return hoy;
+    const r = semilla(id + ':' + stPeriodo);
+    const total = Math.round(base * PERIODOS_ST[stPeriodo][2] * (0.85 + r() * 0.3));
+    const efectividad = 86 + Math.round(r() * 12);
+    const entregados = Math.round((total * efectividad) / 100);
+    const ticket = 38000 + Math.round(r() * 30) * 1000;
+    return { total, entregados, novedades: total - entregados, curso: 0, efectividad,
+      tiempo: 38 + Math.round(r() * 20), cobrado: Math.round(entregados * 0.7) * ticket, porCobrar: hoy.porCobrar, ticket };
   }
-  function cuadroPeriodos(id, base, hoy) {
-    const d = periodos(id, base, hoy);
-    const fmt = (n) => n.toLocaleString('es-CO');
-    return `<div class="st-periodos" role="list" aria-label="Pedidos por periodo">${PERIODOS_ST.map(([k, label]) => `
-      <div class="st-per${k === 'hoy' ? ' es-hoy' : ''}" role="listitem"><small>${label}</small><b>${fmt(d[k].n)}</b><span>${d[k].ef === null ? '—' : d[k].ef + '%'} efect.</span></div>`).join('')}</div>`;
+  function cabPeriodo(s, conBarra) {
+    const [, corto] = PERIODOS_ST[stPeriodo];
+    if (stPeriodo === 'dia') {
+      const avance = s.total ? Math.round(((s.entregados + s.novedades) / s.total) * 100) : 0;
+      return conBarra
+        ? `<div class="st-hoy"><span><b>${s.entregados + s.novedades}</b> de ${s.total} pedidos cerrados hoy</span><span class="st-pct">${avance}%</span></div><span class="st-barra"><i style="--w:${avance}%"></i></span>`
+        : `<span>${s.total ? `<b>${s.total}</b> pedido${s.total > 1 ? 's' : ''} hoy · ${s.curso} en curso` : 'Sin pedidos hoy'}</span>`;
+    }
+    const txt = `<b>${s.total.toLocaleString('es-CO')}</b> pedidos ${corto}`;
+    return conBarra
+      ? `<div class="st-hoy"><span>${txt}</span><span class="st-pct">${s.efectividad}%</span></div><span class="st-barra"><i style="--w:${s.efectividad}%"></i></span>`
+      : `<span>${txt}</span>`;
+  }
+  function kpisPeriodo(lista, sel, quien) {
+    const t = lista.reduce((a, s) => ({ total: a.total + s.total, entregados: a.entregados + s.entregados, novedades: a.novedades + s.novedades, curso: a.curso + s.curso, cobrado: a.cobrado + s.cobrado, porCobrar: a.porCobrar + s.porCobrar }), { total: 0, entregados: 0, novedades: 0, curso: 0, cobrado: 0, porCobrar: 0 });
+    const cerr = t.entregados + t.novedades;
+    const ef = cerr ? Math.round((t.entregados / cerr) * 100) : null;
+    const activos = lista.filter((s) => s.total).length;
+    const [, corto] = PERIODOS_ST[stPeriodo];
+    $$('[data-st-txt]').forEach((el) => { el.textContent = PERIODOS_ST[stPeriodo][0]; });
+    $$('[data-st-periodo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.stPeriodo === stPeriodo)));
+    $(sel).innerHTML = `
+      <div class="kpi kpi-hero"><span class="kpi-label">${quien} con pedidos</span><span class="kpi-value">${activos}<small style="font-size:.5em;opacity:.7"> / ${lista.length}</small></span><span class="kpi-foot">${corto}</span></div>
+      <div class="kpi" data-tono="cielo"><span class="kpi-label">Pedidos</span><span class="kpi-value">${t.total.toLocaleString('es-CO')}</span><span class="kpi-foot">${stPeriodo === 'dia' ? `${t.curso} en curso` : corto}</span></div>
+      <div class="kpi" data-tono="menta"><span class="kpi-label">Efectividad</span><span class="kpi-value">${ef === null ? '—' : ef + '%'}</span><span class="kpi-foot">entregados / cerrados</span></div>
+      <div class="kpi" data-tono="ambar"><span class="kpi-label">Recaudo</span><span class="kpi-value" style="font-size:1.6rem">${money(t.cobrado)}</span><span class="kpi-foot">${money(t.porCobrar)} por cobrar ahora</span></div>`;
   }
   function barras(datos, color) {
     const max = Math.max(1, ...datos);
@@ -502,33 +513,24 @@
   // ---------- Repartidores: estadísticas por repartidor ----------
   function renderRepartidores() {
     const all = store.all();
-    const totR = resumen(all);
-    const activosR = RIDERS.filter((r) => all.some((o) => riderOf(o) === r.id)).length;
-    $('#rep-kpis').innerHTML = `
-      <div class="kpi kpi-hero"><span class="kpi-label">Repartidores activos hoy</span><span class="kpi-value">${activosR}<small style="font-size:.5em;opacity:.7"> / ${RIDERS.length}</small></span><span class="kpi-foot">con pedidos en el día</span></div>
-      <div class="kpi" data-tono="cielo"><span class="kpi-label">Pedidos hoy</span><span class="kpi-value">${totR.total}</span><span class="kpi-foot">${totR.curso} en curso</span></div>
-      <div class="kpi" data-tono="menta"><span class="kpi-label">Efectividad</span><span class="kpi-value">${totR.efectividad === null ? '—' : totR.efectividad + '%'}</span><span class="kpi-foot">entregados / cerrados</span></div>
-      <div class="kpi" data-tono="ambar"><span class="kpi-label">Recaudo del día</span><span class="kpi-value" style="font-size:1.6rem">${money(totR.cobrado)}</span><span class="kpi-foot">${money(totR.porCobrar)} por cobrar</span></div>`;
+    const statsR = RIDERS.map((r) => enPeriodo(r.id, 9, resumen(all.filter((o) => riderOf(o) === r.id))));
+    kpisPeriodo(statsR, '#rep-kpis', 'Repartidores');
     $('#riders').innerHTML = RIDERS.map((r, idx) => {
-      const mine = all.filter((o) => riderOf(o) === r.id);
-      const s = resumen(mine);
+      const s = statsR[idx];
       const color = COLORES_REP[idx % COLORES_REP.length];
       const zonas = zonasDe(r.id);
-      const avance = s.total ? Math.round(((s.entregados + s.novedades) / s.total) * 100) : 0;
       return `<article class="st-card" style="--c:${color}">
         <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(r.nombre)}</span>
           <span class="st-quien"><b>${esc(r.nombre)}</b><small>${phone(r.celular)}</small></span></header>
-        <div class="st-hoy"><span><b>${s.entregados + s.novedades}</b> de ${s.total} pedidos cerrados hoy</span><span class="st-pct">${avance}%</span></div>
-        <span class="st-barra"><i style="--w:${avance}%"></i></span>
+        ${cabPeriodo(s, true)}
         <dl class="st-datos">
           ${dato('menta', 'Efectividad', s.efectividad === null ? '—' : s.efectividad + '%', 'de los cerrados')}
           ${dato('cielo', 'Tiempo prom.', s.tiempo === null ? '—' : s.tiempo + '<small> min</small>', 'por entrega')}
-          ${dato('coral', 'Novedades', s.novedades, 'hoy')}
+          ${dato('coral', 'Novedades', s.novedades.toLocaleString('es-CO'), PERIODOS_ST[stPeriodo][1])}
           ${dato('lima', 'Cobrado', money(s.cobrado), 'contraentrega')}
-          ${dato('ambar', 'Por cobrar', money(s.porCobrar), 'en ruta')}
+          ${dato('ambar', 'Por cobrar', money(s.porCobrar), 'en ruta ahora')}
           ${dato('lavanda', 'Zonas', zonas === null ? '—' : zonas, 'en el mapa')}
         </dl>
-        <div class="st-semana"><p><span>Pedidos por periodo</span></p>${cuadroPeriodos(r.id, 9, s)}</div>
       </article>`;
     }).join('');
   }
@@ -537,32 +539,25 @@
   function renderComercios() {
     const all = store.all();
     const filas = COMERCIOS.map((c) => ({ c, lista: all.filter((o) => comercioDe(o) === c.nombre) }));
-    const tot = resumen(all);
-    const activos = filas.filter((f) => f.lista.length).length;
-    $('#com-kpis').innerHTML = `
-      <div class="kpi kpi-hero"><span class="kpi-label">Comercios activos hoy</span><span class="kpi-value">${activos}<small style="font-size:.5em;opacity:.7"> / ${COMERCIOS.length}</small></span><span class="kpi-foot">con pedidos en el día</span></div>
-      <div class="kpi" data-tono="cielo"><span class="kpi-label">Pedidos hoy</span><span class="kpi-value">${tot.total}</span><span class="kpi-foot">${tot.curso} en curso</span></div>
-      <div class="kpi" data-tono="menta"><span class="kpi-label">Efectividad</span><span class="kpi-value">${tot.efectividad === null ? '—' : tot.efectividad + '%'}</span><span class="kpi-foot">entregados / cerrados</span></div>
-      <div class="kpi" data-tono="ambar"><span class="kpi-label">Recaudo del día</span><span class="kpi-value" style="font-size:1.6rem">${money(tot.cobrado)}</span><span class="kpi-foot">${money(tot.porCobrar)} por cobrar</span></div>`;
-    $('#comercios').innerHTML = filas.sort((a, b) => b.lista.length - a.lista.length).map(({ c, lista }, i) => {
-      const s = resumen(lista);
+    filas.forEach((f) => { f.s = enPeriodo(f.c.id, 6 + (f.c.id.length % 5), resumen(f.lista)); });
+    kpisPeriodo(filas.map((f) => f.s), '#com-kpis', 'Comercios');
+    $('#comercios').innerHTML = filas.sort((a, b) => b.s.total - a.s.total).map(({ c, lista, s }, i) => {
       const color = COLORES_REP[(i + 3) % COLORES_REP.length];
       const reps = [...new Set(lista.map(riderOf))].map((id) => rider(id).nombre.split(' ')[0]);
-      const ticket = lista.filter((o) => o.cobro).length ? Math.round(lista.filter((o) => o.cobro).reduce((x, o) => x + o.cobro, 0) / lista.filter((o) => o.cobro).length) : null;
+      const ticket = s.ticket ? s.ticket : lista.filter((o) => o.cobro).length ? Math.round(lista.filter((o) => o.cobro).reduce((x, o) => x + o.cobro, 0) / lista.filter((o) => o.cobro).length) : null;
       return `<article class="st-card" style="--c:${color}">
         <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(c.nombre)}</span>
           <span class="st-quien"><b>${esc(c.nombre)}</b><small>${esc(c.categoria)} · ${esc(c.zona)}</small></span></header>
-        <div class="st-hoy"><span>${s.total ? `<b>${s.total}</b> pedido${s.total > 1 ? 's' : ''} hoy · ${s.curso} en curso` : 'Sin pedidos hoy'}</span><span class="st-chip">Cliente desde ${esc(c.desde)}</span></div>
+        <div class="st-hoy">${cabPeriodo(s, false)}<span class="st-chip">Cliente desde ${esc(c.desde)}</span></div>
         <dl class="st-datos">
           ${dato('menta', 'Efectividad', s.efectividad === null ? '—' : s.efectividad + '%', 'de los cerrados')}
           ${dato('cielo', 'Tiempo prom.', s.tiempo === null ? '—' : s.tiempo + '<small> min</small>', 'por entrega')}
-          ${dato('coral', 'Novedades', s.novedades, 'hoy')}
+          ${dato('coral', 'Novedades', s.novedades.toLocaleString('es-CO'), PERIODOS_ST[stPeriodo][1])}
           ${dato('lima', 'Recaudado', money(s.cobrado), 'contraentrega')}
           ${dato('ambar', 'Ticket prom.', ticket === null ? '—' : money(ticket), 'por pedido')}
           ${dato('lavanda', 'Repartidores', reps.length || '—', reps.join(', ') || 'sin asignar')}
         </dl>
-        <div class="st-semana"><p><span>Pedidos por periodo</span></p>${cuadroPeriodos(c.id, 6 + (c.id.length % 5), s)}</div>
-        <p class="st-contacto">Contacto: <b>${esc(c.contacto)}</b> · ${phone(c.celular)}</p>
+        <p class="st-contacto">Celular: <b>${phone(c.celular)}</b></p>
       </article>`;
     }).join('');
   }
@@ -610,18 +605,22 @@
     const from = $('#ex-from');
     const to = $('#ex-to');
     const pkg = $('#ex-package');
-    const keepFrom = from.value || 'r1';
-    from.innerHTML = RIDERS.map((r) => `<option value="${r.id}">${r.nombre}</option>`).join('');
+    const keepFrom = from.value;
+    const keepPkg = pkg.value;
+    from.innerHTML = '<option value="">Elige quién lo tiene</option>' + RIDERS.map((r) => `<option value="${r.id}">${r.nombre}</option>`).join('');
     from.value = keepFrom;
-    const keepTo = to.value && to.value !== from.value ? to.value : RIDERS.find((r) => r.id !== from.value).id;
-    to.innerHTML = RIDERS.filter((r) => r.id !== from.value).map((r) => `<option value="${r.id}">${r.nombre}</option>`).join('');
+    const keepTo = to.value !== from.value ? to.value : '';
+    to.innerHTML = '<option value="">Elige quién lo entrega ahora</option>' + RIDERS.filter((r) => r.id !== from.value).map((r) => `<option value="${r.id}">${r.nombre}</option>`).join('');
     to.value = keepTo;
-    const active = all.filter((o) => riderOf(o) === from.value && !FINALES.includes(o.estado));
-    pkg.innerHTML = active.length
-      ? active.map((o) => `<option value="${o.id}">${o.codigo} · ${o.nombre} (${ESTADOS[o.estado].label.toLowerCase()})</option>`).join('')
-      : '<option value="">No tiene pedidos activos</option>';
+    const active = from.value ? all.filter((o) => riderOf(o) === from.value && !FINALES.includes(o.estado)) : [];
+    pkg.innerHTML = !from.value
+      ? '<option value="">Primero elige el repartidor actual</option>'
+      : active.length
+        ? '<option value="">Elige el paquete</option>' + active.map((o) => `<option value="${o.id}">${o.codigo} · ${o.nombre} (${ESTADOS[o.estado].label.toLowerCase()})</option>`).join('')
+        : '<option value="">No tiene pedidos activos</option>';
+    pkg.value = active.some((o) => o.id === keepPkg) ? keepPkg : '';
     pkg.disabled = !active.length;
-    $('#btn-exchange').disabled = !active.length;
+    $('#btn-exchange').disabled = !(from.value && to.value && pkg.value);
 
     const ex = loadEx().slice().reverse();
     $('#ex-history').innerHTML = ex.length ? ex.map((h) => `
@@ -638,6 +637,7 @@
     ex.push({ codigo: o.codigo, from: rider($('#ex-from').value).nombre, to: rider(toId).nombre, at: new Date().toISOString() });
     try { localStorage.setItem(EX_KEY, JSON.stringify(ex.slice(-30))); } catch { /* */ }
     toast(`${o.codigo} ahora lo entrega ${rider(toId).nombre}`);
+    $('#ex-from').value = ''; $('#ex-to').value = ''; $('#ex-package').value = '';
     renderIntercambio();
   }
 
@@ -681,6 +681,8 @@
     const el = e.target.closest('[data-action]');
     if (el) { const fn = actions[el.dataset.action]; if (fn) { e.preventDefault(); fn(el, e); } return; }
     const rp = e.target.closest('[data-res-periodo]');
+    const sp = e.target.closest('[data-st-periodo]');
+    if (sp) { stPeriodo = sp.dataset.stPeriodo; renderRepartidores(); renderComercios(); return; }
     if (rp) { resPeriodo = rp.dataset.resPeriodo; $$('[data-res-periodo]').forEach((b) => b.setAttribute('aria-pressed', String(b === rp))); renderResumen(); countUp($('#view-resumen')); return; }
     if (!e.target.closest('.search')) cerrarBusqueda();
     // Cerrar menú de cuenta al hacer clic fuera
@@ -695,7 +697,7 @@
       const o = store.update(currentId, (x) => { x.repartidor = e.target.value; });
       toast(`${o.codigo} reasignado a ${rider(e.target.value).nombre}`);
     }
-    if (e.target.id === 'ex-from' || e.target.id === 'ex-to') renderIntercambio();
+    if (e.target.id === 'ex-from' || e.target.id === 'ex-to' || e.target.id === 'ex-package') renderIntercambio();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

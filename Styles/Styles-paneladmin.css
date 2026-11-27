@@ -297,7 +297,7 @@ body {
 .rows { display: flex; flex-direction: column; gap: 6px; }
 .row {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1.6fr) minmax(120px, 1fr) 90px 112px;
+  grid-template-columns: 118px minmax(0, 1.6fr) minmax(120px, 1fr) 90px 112px;
   align-items: center;
   gap: 1rem;
   width: 100%;
@@ -311,7 +311,7 @@ body {
 .row:hover { border-color: var(--border-strong); background: var(--bg-panel-alt); }
 .row:active { transform: scale(0.995); }
 .row[data-estado="no_entregado"] { border-color: rgba(255, 107, 131, 0.3); }
-.row-code { padding: 3px 8px; border-radius: 7px; background: var(--bg-panel-alt); font: 600 0.75rem ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); text-align: center; }
+.row-code { display: block; padding: 5px 10px; border-radius: 8px; background: color-mix(in srgb, var(--lavanda) 16%, transparent); border: 1px solid color-mix(in srgb, var(--lavanda) 38%, transparent); box-shadow: inset 3px 0 0 var(--lavanda); font: 700 0.75rem ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.02em; color: var(--text-strong); text-align: center; white-space: nowrap; }
 .row-main { min-width: 0; display: flex; flex-direction: column; }
 .row-main b { font-weight: 600; color: var(--text-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-main small { font-size: 0.8125rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -364,9 +364,9 @@ body {
 .rc-stats dt { font-size: 0.6875rem; font-weight: 600; color: var(--muted); }
 .rc-stats dd { font-family: var(--font-display); font-weight: 700; color: var(--text-strong); font-variant-numeric: tabular-nums; }
 .rc-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-.rc-list button { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 0.45rem 0.5rem; border-radius: var(--r-sm); text-align: left; font-size: 0.8125rem; }
+.rc-list button { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; padding: 0.45rem 0.5rem; border-radius: var(--r-sm); text-align: left; font-size: 0.8125rem; }
 .rc-list button:hover { background: var(--bg-panel-alt); }
-.rc-list button span:first-child { font: 600 0.75rem ui-monospace, Menlo, monospace; color: var(--muted); }
+.rc-list button span:first-child { font: 700 0.75rem ui-monospace, Menlo, monospace; color: var(--text-strong); white-space: nowrap; }
 .rc-list b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .muted { color: var(--muted); font-size: 0.8125rem; padding: 0.5rem; }
 
@@ -497,7 +497,7 @@ body {
 @media (max-width: 1180px) {
   .kpis { grid-template-columns: repeat(3, 1fr); }
   .kpi-hero { grid-column: span 2; }
-  .row { grid-template-columns: 78px minmax(0, 1fr) 84px 108px; }
+  .row { grid-template-columns: 112px minmax(0, 1fr) 84px 108px; }
   .row-track { display: none; }
 }
 @media (max-width: 900px) {
@@ -1234,3 +1234,11 @@ body[data-vista="mapa"] .topbar h1 { font-size: 1.375rem; }
 .st-per b { font-family: 'Poppins', 'Outfit', sans-serif; font-size: 1.125rem; font-weight: 700; line-height: 1.15; color: var(--text-strong); font-variant-numeric: tabular-nums; }
 .st-per span { font-size: 0.6875rem; color: var(--muted); }
 .st-per.es-hoy { background: color-mix(in srgb, var(--c) 24%, transparent); border-color: color-mix(in srgb, var(--c) 55%, transparent); }
+
+/* Redes aún sin vincular */
+.red-card.es-pronto .red-num { min-height: 2.1rem; align-items: center; }
+.red-pronto { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; background: color-mix(in srgb, var(--lima) 16%, transparent); color: var(--lima); font: 700 .8125rem var(--font-display); }
+:root[data-tema="claro"] .red-pronto { color: #4E6B00; }
+.red-pronto::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+/* Selector de periodo en Repartidores y Comercios */
+.st-cab-periodo .welcome { font-family: var(--font-display); font-weight: 600; color: var(--text-strong); }

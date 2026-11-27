@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=29">
+<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=30">
 <script>(function(){var t=localStorage.getItem('loentrego-admin-tema')||'auto';document.documentElement.dataset.tema=t;})();</script>
 <link rel="icon" href="../img/icons/icon-192.png">
 </head>
@@ -138,12 +138,34 @@
 
     <!-- ===== Repartidores ===== -->
     <section class="view" id="view-repartidores" hidden>
+      <div class="res-cab st-cab-periodo">
+        <p class="welcome">Métricas <span data-st-txt>del día</span></p>
+        <div class="seg seg-sm" role="group" aria-label="Periodo">
+          <button type="button" data-st-periodo="dia" aria-pressed="true">Día</button>
+          <button type="button" data-st-periodo="semana" aria-pressed="false">Semana</button>
+          <button type="button" data-st-periodo="mes" aria-pressed="false">Mes</button>
+          <button type="button" data-st-periodo="6m" aria-pressed="false">6 meses</button>
+          <button type="button" data-st-periodo="ano" aria-pressed="false">Año</button>
+          <button type="button" data-st-periodo="historico" aria-pressed="false">Histórico</button>
+        </div>
+      </div>
       <div class="kpis st-kpis" id="rep-kpis"></div>
       <div class="st-grid" id="riders"></div>
     </section>
 
     <!-- ===== Comercios ===== -->
     <section class="view" id="view-comercios" hidden>
+      <div class="res-cab st-cab-periodo">
+        <p class="welcome">Métricas <span data-st-txt>del día</span></p>
+        <div class="seg seg-sm" role="group" aria-label="Periodo">
+          <button type="button" data-st-periodo="dia" aria-pressed="true">Día</button>
+          <button type="button" data-st-periodo="semana" aria-pressed="false">Semana</button>
+          <button type="button" data-st-periodo="mes" aria-pressed="false">Mes</button>
+          <button type="button" data-st-periodo="6m" aria-pressed="false">6 meses</button>
+          <button type="button" data-st-periodo="ano" aria-pressed="false">Año</button>
+          <button type="button" data-st-periodo="historico" aria-pressed="false">Histórico</button>
+        </div>
+      </div>
       <div class="kpis st-kpis" id="com-kpis"></div>
       <div class="st-grid" id="comercios"></div>
     </section>
@@ -262,6 +284,6 @@
 
 <script src="../Scripts/vendor/polygon-clipping.min.js"></script>
 <script src="../Scripts/mapa-zonas.js?v=25"></script>
-<script src="../Scripts/Scripts-paneladmin.js?v=15"></script>
+<script src="../Scripts/Scripts-paneladmin.js?v=16"></script>
 </body>
 </html>
