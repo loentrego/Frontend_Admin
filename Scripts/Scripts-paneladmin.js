@@ -85,11 +85,15 @@
       historial: [['por_recoger', '07:15'], ['recogido', '07:35'], ['en_camino', '07:40'], ['entregado', '08:12']] },
   ];
 
+  // Pedidos guardados con el formato viejo (LE-1042) pasan a 3 letras + 7 números (LOE-0001042)
+  const migrarCodigo = (o) => (o && /^LE-\d+$/.test(o.codigo) ? { ...o, codigo: 'LOE-' + o.codigo.slice(3).padStart(7, '0') } : o);
+
   const store = {
     all() {
       let list;
       try { list = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { list = null; }
       if (!Array.isArray(list)) list = structuredClone(SEED);
+      else if (list.some((o) => /^LE-\d+$/.test(o?.codigo))) { list = list.map(migrarCodigo); this.save(list, true); }
       // Agrega una sola vez los pedidos de los otros repartidores
       let extrasDone = false;
       try { extrasDone = localStorage.getItem(EXTRAS_KEY) === '1'; } catch { /* sin almacenamiento */ }
@@ -259,13 +263,6 @@
     }).join('');
     $('#riders-today').innerHTML = filasRep + filasRep.replace(/<li class="rt-row">/g, '<li class="rt-row" aria-hidden="true">');
 
-    const events = all.flatMap((o) => (o.historial || []).map(([e, h]) => ({ o, e, h })))
-      .sort((a, b) => b.h.localeCompare(a.h)).slice(0, 12);
-    const filasAct = events.map(({ o, e, h }) => `
-      <li class="act"><span class="act-time">${h}</span><i class="dot" data-tono="${ESTADOS[e].tono}"></i>
-        <span class="act-text"><b>${o.codigo}</b> · ${o.nombre} — ${ESTADOS[e].label.toLowerCase()}${e === 'no_entregado' && o.motivo ? ` (${MOTIVOS[o.motivo].toLowerCase()})` : ''}</span>
-        <span class="act-who">${rider(riderOf(o)).nombre.split(' ')[0]}</span></li>`).join('');
-    $('#activity').innerHTML = filasAct + filasAct.replace(/<li class="act">/g, '<li class="act" aria-hidden="true">');
     $$('.corredor').forEach((c) => { const n = c.firstElementChild.children.length / 2; c.style.setProperty('--dur', `${Math.max(14, n * 3.2)}s`); });
   }
 
@@ -474,6 +471,23 @@
       tiempo: tiempoEntrega(lista),
     };
   }
+  // Pedidos por periodo (Hoy sale de los pedidos reales; lo demás es de ejemplo hasta tener el backend)
+  const PERIODOS_ST = [['hoy', 'Hoy'], ['semana', 'Semana'], ['mes', 'Mes'], ['6m', '6 meses'], ['ano', 'Año'], ['historico', 'Histórico']];
+  function periodos(id, base, hoy) {
+    const r = semilla(id + ':periodos');
+    const dia = base * (0.8 + r() * 0.4);
+    const sem = Math.round(dia * 6.2), mes = Math.round(sem * (4.1 + r() * 0.3));
+    const seis = Math.round(mes * (5.4 + r() * 0.8)), ano = Math.round(seis * (1.8 + r() * 0.3));
+    const historico = Math.round(ano * (1.3 + r() * 0.9));
+    const ef = () => 88 + Math.round(r() * 10);
+    return { hoy: { n: hoy.total, ef: hoy.efectividad }, semana: { n: sem, ef: ef() }, mes: { n: mes, ef: ef() }, '6m': { n: seis, ef: ef() }, ano: { n: ano, ef: ef() }, historico: { n: historico, ef: ef() } };
+  }
+  function cuadroPeriodos(id, base, hoy) {
+    const d = periodos(id, base, hoy);
+    const fmt = (n) => n.toLocaleString('es-CO');
+    return `<div class="st-periodos" role="list" aria-label="Pedidos por periodo">${PERIODOS_ST.map(([k, label]) => `
+      <div class="st-per${k === 'hoy' ? ' es-hoy' : ''}" role="listitem"><small>${label}</small><b>${fmt(d[k].n)}</b><span>${d[k].ef === null ? '—' : d[k].ef + '%'} efect.</span></div>`).join('')}</div>`;
+  }
   function barras(datos, color) {
     const max = Math.max(1, ...datos);
     return `<div class="st-barras" style="--c:${color}">${datos.map((v, i) => `<span title="${DIAS[i]}: ${v} pedidos"><i style="--h:${(v / max) * 100}%"></i><small>${DIAS[i]}</small></span>`).join('')}</div>`;
@@ -499,8 +513,6 @@
       const mine = all.filter((o) => riderOf(o) === r.id);
       const s = resumen(mine);
       const color = COLORES_REP[idx % COLORES_REP.length];
-      const sem = semana(r.id, 9);
-      const totalSem = sem.reduce((a, b) => a + b, 0);
       const zonas = zonasDe(r.id);
       const avance = s.total ? Math.round(((s.entregados + s.novedades) / s.total) * 100) : 0;
       return `<article class="st-card" style="--c:${color}">
@@ -518,7 +530,7 @@
           ${dato('ambar', 'Por cobrar', money(s.porCobrar), 'en ruta')}
           ${dato('lavanda', 'Zonas', zonas === null ? '—' : zonas, 'en el mapa')}
         </dl>
-        <div class="st-semana"><p><span>Últimos 7 días</span><b>${totalSem} pedidos</b></p>${barras(sem, color)}</div>
+        <div class="st-semana"><p><span>Pedidos por periodo</span></p>${cuadroPeriodos(r.id, 9, s)}</div>
       </article>`;
     }).join('');
   }
@@ -537,8 +549,6 @@
     $('#comercios').innerHTML = filas.sort((a, b) => b.lista.length - a.lista.length).map(({ c, lista }, i) => {
       const s = resumen(lista);
       const color = COLORES_REP[(i + 3) % COLORES_REP.length];
-      const sem = semana(c.id, 6 + (c.id.length % 5));
-      const totalSem = sem.reduce((a, b) => a + b, 0);
       const reps = [...new Set(lista.map(riderOf))].map((id) => rider(id).nombre.split(' ')[0]);
       const ticket = lista.filter((o) => o.cobro).length ? Math.round(lista.filter((o) => o.cobro).reduce((x, o) => x + o.cobro, 0) / lista.filter((o) => o.cobro).length) : null;
       return `<article class="st-card" style="--c:${color}">
@@ -555,7 +565,7 @@
           ${dato('ambar', 'Ticket prom.', ticket === null ? '—' : money(ticket), 'por pedido')}
           ${dato('lavanda', 'Repartidores', reps.length || '—', reps.join(', ') || 'sin asignar')}
         </dl>
-        <div class="st-semana"><p><span>Últimos 7 días</span><b>${totalSem} pedidos</b></p>${barras(sem, color)}</div>
+        <div class="st-semana"><p><span>Pedidos por periodo</span></p>${cuadroPeriodos(c.id, 6 + (c.id.length % 5), s)}</div>
         <p class="st-contacto">Contacto: <b>${esc(c.contacto)}</b> · ${phone(c.celular)}</p>
       </article>`;
     }).join('');
