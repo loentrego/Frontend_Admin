@@ -28,13 +28,13 @@
   const MOTIVOS = { no_contesta: 'No contesta', direccion: 'Dirección errada', rechazado: 'Rechazó el pedido', ausente: 'No había nadie', otro: 'Otro motivo' };
 
   const RIDERS = [
-    { id: 'r1', nombre: 'Camilo Restrepo', celular: '3001234567', vehiculo: 'Moto · ABC12D' },
-    { id: 'r2', nombre: 'Laura Jiménez', celular: '3116547890', vehiculo: 'Moto · XYZ98K' },
-    { id: 'r3', nombre: 'Andrés Torres', celular: '3204561278', vehiculo: 'Bicicleta' },
-    { id: 'r4', nombre: 'Juliana Pardo', celular: '3012223344', vehiculo: 'Moto · JPD45F' },
-    { id: 'r5', nombre: 'Mateo Rincón', celular: '3135556677', vehiculo: 'Moto · MRN71H' },
-    { id: 'r6', nombre: 'Diana Salazar', celular: '3178889900', vehiculo: 'Moto · DSL23K' },
-    { id: 'r7', nombre: 'Kevin Castaño', celular: '3221114455', vehiculo: 'Bicicleta' },
+    { id: 'r1', nombre: 'Camilo Restrepo', celular: '3001234567' },
+    { id: 'r2', nombre: 'Laura Jiménez', celular: '3116547890' },
+    { id: 'r3', nombre: 'Andrés Torres', celular: '3204561278' },
+    { id: 'r4', nombre: 'Juliana Pardo', celular: '3012223344' },
+    { id: 'r5', nombre: 'Mateo Rincón', celular: '3135556677' },
+    { id: 'r6', nombre: 'Diana Salazar', celular: '3178889900' },
+    { id: 'r7', nombre: 'Kevin Castaño', celular: '3221114455' },
   ];
   // Cada repartidor tiene un color (el mismo en el mapa de zonas)
   const COLORES_REP = ['#8FD3FF', '#FFB547', '#FF8FB1', '#7EE0C3', '#C3B9FF', '#FF9F6E', '#6FA8FF', '#F2DE6B'];
@@ -309,7 +309,7 @@
         const mine = list.filter((o) => riderOf(o) === r.id);
         if (!mine.length) return '';
         return `<section class="group"><header class="group-head"><span class="avatar rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span>
-          <span><b>${r.nombre}</b><small>${phone(r.celular)} · ${r.vehiculo}</small></span>
+          <span><b>${r.nombre}</b><small>${phone(r.celular)}</small></span>
           <span class="group-count">${mine.length} pedido${mine.length === 1 ? '' : 's'}</span></header>
           <div class="rows">${mine.map(orderRow).join('')}</div></section>`;
       }).join('');
@@ -326,11 +326,11 @@
     const all = store.all();
     const ped = all.filter((o) => norm(`${o.codigo} ${o.nombre} ${o.direccion} ${comercioDe(o)}`).includes(q)).slice(0, 5);
     const com = COMERCIOS.filter((c) => norm(`${c.nombre} ${c.categoria} ${c.zona} ${c.contacto}`).includes(q)).slice(0, 4);
-    const rep = RIDERS.filter((r) => norm(`${r.nombre} ${r.vehiculo} ${r.celular}`).includes(q)).slice(0, 4);
+    const rep = RIDERS.filter((r) => norm(`${r.nombre} ${r.celular}`).includes(q)).slice(0, 4);
     const grupo = (tit, items) => items.length ? `<p class="sr-tit">${tit}</p>${items.join('')}` : '';
     box.innerHTML = grupo('Pedidos', ped.map((o) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="pedido" data-id="${o.id}"><span class="sr-ico">${o.codigo.slice(-4)}</span><span><b>${esc(o.nombre)}</b><small>${o.codigo} · ${esc(comercioDe(o))}</small></span>${pill(o.estado)}</button>`))
       + grupo('Comercios', com.map((c) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="comercio" data-id="${c.id}"><span class="sr-ico">${initials(c.nombre)}</span><span><b>${esc(c.nombre)}</b><small>${esc(c.categoria)} · ${esc(c.zona)}</small></span></button>`))
-      + grupo('Repartidores', rep.map((r) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="repartidor" data-id="${r.id}"><span class="sr-ico rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span><span><b>${esc(r.nombre)}</b><small>${esc(r.vehiculo)}</small></span></button>`))
+      + grupo('Repartidores', rep.map((r) => `<button type="button" class="sr-item" data-action="abrir" data-tipo="repartidor" data-id="${r.id}"><span class="sr-ico rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span><span><b>${esc(r.nombre)}</b><small>${phone(r.celular)}</small></span></button>`))
       || '<p class="sr-vacio">Sin resultados</p>';
     box.hidden = false; $('#search').setAttribute('aria-expanded', 'true');
   }
@@ -348,8 +348,8 @@
     } else {
       const r = RIDERS.find((x) => x.id === id); if (!r) return;
       lista = all.filter((o) => riderOf(o) === r.id);
-      tit = r.nombre; sub = r.vehiculo; extra = 'Repartidor';
-      datos = `<div><dt>Celular</dt><dd><a href="tel:+57${r.celular}">${phone(r.celular)}</a></dd></div><div><dt>Vehículo</dt><dd>${esc(r.vehiculo)}</dd></div>`;
+      tit = r.nombre; sub = phone(r.celular); extra = 'Repartidor';
+      datos = `<div><dt>Celular</dt><dd><a href="tel:+57${r.celular}">${phone(r.celular)}</a></dd></div>`;
     }
     const s2 = resumen(lista);
     currentId = null;
@@ -409,7 +409,7 @@
 
       <p class="label"><label for="reassign">Repartidor asignado</label></p>
       <select id="reassign" class="select" data-action-change="reassign">
-        ${RIDERS.map((r) => `<option value="${r.id}"${riderOf(o) === r.id ? ' selected' : ''}>${r.nombre} · ${r.vehiculo}</option>`).join('')}
+        ${RIDERS.map((r) => `<option value="${r.id}"${riderOf(o) === r.id ? ' selected' : ''}>${r.nombre}</option>`).join('')}
       </select>
 
       <p class="label">Datos</p>
@@ -517,7 +517,7 @@
       const avance = s.total ? Math.round(((s.entregados + s.novedades) / s.total) * 100) : 0;
       return `<article class="st-card" style="--c:${color}">
         <header class="st-cab"><span class="avatar lg rep" style="--c:${color}">${initials(r.nombre)}</span>
-          <span class="st-quien"><b>${esc(r.nombre)}</b><small>${esc(r.vehiculo)} · ${phone(r.celular)}</small></span></header>
+          <span class="st-quien"><b>${esc(r.nombre)}</b><small>${phone(r.celular)}</small></span></header>
         <div class="st-hoy"><span><b>${s.entregados + s.novedades}</b> de ${s.total} pedidos cerrados hoy</span><span class="st-pct">${avance}%</span></div>
         <span class="st-barra"><i style="--w:${avance}%"></i></span>
         <dl class="st-datos">
