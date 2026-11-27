@@ -255,7 +255,6 @@
 
   // ---------- Pedidos ----------
   let filtro = 'todos';
-  let agrupar = true;
   const FILTROS = {
     todos: () => true,
     por_recoger: (o) => o.estado === 'por_recoger',
@@ -280,7 +279,6 @@
     const counts = Object.fromEntries(Object.keys(FILTROS).map((k) => [k, all.filter(FILTROS[k]).length]));
     $$('[data-count]').forEach((el) => { el.textContent = counts[el.dataset.count] ?? 0; });
     $$('[data-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.filter === filtro)));
-    $$('[data-group]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.group === 'si') === agrupar)));
 
     const list = all.filter(FILTROS[filtro]).filter((o) => !term
       || [o.codigo, o.nombre, o.direccion, rider(riderOf(o)).nombre].some((v) => String(v).toLowerCase().includes(term)))
@@ -291,8 +289,8 @@
       box.innerHTML = `<div class="empty"><span class="isotipo"></span><p>No hay pedidos que coincidan.</p></div>`;
       return;
     }
-    if (agrupar) {
-      box.innerHTML = RIDERS.map((r) => {
+    // Siempre agrupado por repartidor
+    box.innerHTML = RIDERS.map((r) => {
         const mine = list.filter((o) => riderOf(o) === r.id);
         if (!mine.length) return '';
         return `<section class="group"><header class="group-head"><span class="avatar rep" ${riderStyle(r.id)}>${initials(r.nombre)}</span>
@@ -300,9 +298,6 @@
           <span class="group-count">${mine.length} pedido${mine.length === 1 ? '' : 's'}</span></header>
           <div class="rows">${mine.map(orderRow).join('')}</div></section>`;
       }).join('');
-    } else {
-      box.innerHTML = `<div class="rows">${list.map(orderRow).join('')}</div>`;
-    }
   }
 
   // ---------- Buscador global ----------
@@ -656,7 +651,6 @@
       toast(`${o.codigo}: ${ESTADOS[e].label.toLowerCase()}`);
     },
     filter: (el) => { filtro = el.dataset.filter; renderPedidos(); },
-    group: (el) => { agrupar = el.dataset.group === 'si'; renderPedidos(); },
     'gen-link': (el) => generateLink(el.dataset.type),
     'copy-link': async (el) => {
       try { await navigator.clipboard.writeText(el.dataset.url); el.textContent = 'Copiado'; el.dataset.ok = ''; }
