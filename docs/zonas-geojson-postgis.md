@@ -109,11 +109,11 @@ La regla es la misma en PostGIS y en `window.LEMapa.asignar()`:
 2. Si no cae en ninguna (un hueco, o fuera de la cobertura), se usa la **zona más cercana** (`<->`, que aprovecha el índice GIST) y el pedido queda marcado `fuera_de_zona` para revisión.
 3. El pedido va al **repartidor de esa zona**, si está activo.
 
-Lo hace la base sola al crear el pedido (`pedido_al_crear`). Para consultarlo a mano:
+El backend la llama al crear el pedido (las coordenadas no se guardan) y guarda el repartidor y la tarifa que devuelve:
 
 ```sql
 SELECT * FROM zona_para_punto(4.6486, -74.0628);
--- id | nombre | dentro
+-- id | nombre | dentro | repartidor_id | tarifa
 ```
 
 ## 4. Editar en el panel
