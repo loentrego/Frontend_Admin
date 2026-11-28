@@ -35,7 +35,7 @@ Bogotá y de los barrios de Funza.
 ```json
 {
   "type": "FeatureCollection",
-  "name": "zonas_reparto_loentrego",
+  "name": "zonas_loentrego",
   "features": [
     {
       "type": "Feature",
@@ -43,10 +43,9 @@ Bogotá y de los barrios de Funza.
       "properties": {
         "id": "chapinero",
         "nombre": "Chapinero",
-        "municipio": "bogota",
-        "repartidores": ["r1"],
-        "capacidad_diaria": 12,
-        "prioridad": 0
+        "area_id": "bogota",
+        "repartidor_id": "r1",
+        "capacidad_diaria": 12
       },
       "geometry": {
         "type": "Polygon",
@@ -57,88 +56,65 @@ Bogotá y de los barrios de Funza.
 }
 ```
 
-| Propiedad          | Tipo       | Para qué sirve |
-|--------------------|------------|----------------|
-| `id`               | texto      | Identificador estable de la zona (clave primaria). |
-| `nombre`           | texto      | Nombre visible. |
-| `municipio`        | texto      | `bogota`, `funza` o `soacha`. |
-| `repartidores`     | texto[]    | IDs de los repartidores que atienden la zona. |
-| `capacidad_diaria` | entero     | Pedidos al día por repartidor; el panel lo usa para calcular "faltan N repartidores". |
-| `prioridad`        | entero     | Si dos zonas se solapan, gana la de mayor prioridad. |
+Las propiedades tienen los mismos nombres que las columnas de la tabla `zonas` de la base (Técnico):
+
+| Propiedad          | Tipo   | Para qué sirve |
+|--------------------|--------|----------------|
+| `id`               | texto  | Identificador estable de la zona (clave primaria). |
+| `nombre`           | texto  | Nombre visible. |
+| `area_id`          | texto  | Área de cobertura: `bogota`, `funza` o `soacha`. |
+| `repartidor_id`    | texto  | El repartidor de la zona. **Uno solo** y obligatorio (un repartidor puede tener varias zonas). |
+| `capacidad_diaria` | entero | Pedidos al día que aguanta la zona; con esto se calcula su carga. |
 
 Al importar, el panel acepta un `FeatureCollection`, un `Feature` suelto o una geometría
 `Polygon` o `MultiPolygon` suelta. También:
 
+- Acepta el formato anterior (`municipio`, `repartidores`) y lo convierte.
 - Corrige las coordenadas si vienen como `[lat, lon]`.
-- Ignora los huecos internos.
 - Avisa de todo lo que cambió.
 
-## 2. Llevarlo a PostGIS
+## 2. Cómo se guarda en la base
+
+Todo el contorno va en **una sola columna** `contorno` de tipo `geometry(MultiPolygon, 4326)`
+(no hay una fila por punto). Así PostGIS responde "¿en qué zona cae este punto?" con un índice
+espacial, y maneja zonas en varias partes, huecos y bordes compartidos con la vecina.
 
 ### Opción A: el SQL que genera el panel
 
-`window.LEMapa.sql()` genera el script (por ejemplo, desde la consola del navegador en el panel). El script hace todo esto:
-
-1. Activa la extensión `postgis`.
-2. Crea la tabla `zonas_reparto` con un índice espacial **GIST**.
-3. Crea también la tabla `localidades`, con su propio índice espacial.
-4. Inserta o actualiza cada zona de reparto y cada localidad (`ON CONFLICT (id) DO UPDATE`). Usa `ST_MakeValid` por si algún polígono quedó cruzado.
-5. Crea las funciones `zona_para_punto(lat, lon)`, para la autoasignación, y `localidad_para_punto(lat, lon)`, para los reportes.
+`window.LEMapa.sql()` genera los `INSERT … ON CONFLICT (id) DO UPDATE` para la tabla `zonas`
+(la tabla y sus índices ya están en `tecnico_loentrego/db/esquema.sql`). Usa `ST_MakeValid`
+por si algún polígono quedó cruzado. `repartidor_id` debe ser el id (uuid) del repartidor en la base.
 
 ```bash
 psql "$DATABASE_URL" -f zonas-loentrego.sql
 ```
 
-### Opción B: importar el GeoJSON con `ogr2ogr`
-
-```bash
-ogr2ogr -f PostgreSQL PG:"$DATABASE_URL" zonas-reparto-loentrego.geojson \
-  -nln zonas_reparto_import -nlt PROMOTE_TO_MULTI -lco GEOMETRY_NAME=geom -t_srs EPSG:4326
-```
-
-### Opción C: desde el backend (API)
+### Opción B: desde el backend (API)
 
 ```sql
-INSERT INTO zonas_reparto (id, nombre, municipio, repartidores, capacidad_diaria, prioridad, geom)
-VALUES ($1, $2, $3, $4, $5, $6, ST_Multi(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON($7), 4326))))
+INSERT INTO zonas (id, nombre, area_id, repartidor_id, capacidad_diaria, contorno)
+VALUES ($1, $2, $3, $4, $5, ST_Multi(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON($6), 4326))))
 ON CONFLICT (id) DO UPDATE SET
-  nombre = EXCLUDED.nombre, municipio = EXCLUDED.municipio, repartidores = EXCLUDED.repartidores,
-  capacidad_diaria = EXCLUDED.capacidad_diaria, prioridad = EXCLUDED.prioridad,
-  geom = EXCLUDED.geom, actualizado = now();
+  nombre = EXCLUDED.nombre, area_id = EXCLUDED.area_id, repartidor_id = EXCLUDED.repartidor_id,
+  capacidad_diaria = EXCLUDED.capacidad_diaria, contorno = EXCLUDED.contorno, archivado_en = NULL;
 ```
 
-Aquí `$7` es `feature.geometry` en texto JSON.
+Aquí `$6` es `feature.geometry` en texto JSON. Para devolverla al panel: `ST_AsGeoJSON(contorno)`.
 
 ## 3. Autoasignación
 
 La regla es la misma en PostGIS y en `window.LEMapa.asignar()`:
 
-1. Se usa la zona que **contiene** el punto de entrega. Se usa `ST_Covers`, así que un punto justo sobre el borde también cuenta.
-2. Si varias zonas lo contienen (solape), gana la de **mayor `prioridad`**.
-3. Si no cae en ninguna (un hueco, o fuera de la cobertura), se usa la **zona más cercana** (`<->`, que aprovecha el índice GIST).
+1. Se usa la zona que **contiene** el punto de entrega (`ST_Covers`: un punto justo sobre el borde también cuenta).
+2. Si no cae en ninguna (un hueco, o fuera de la cobertura), se usa la **zona más cercana** (`<->`, que aprovecha el índice GIST) y el pedido queda marcado `fuera_de_zona` para revisión.
+3. El pedido va al **repartidor de esa zona**, si está activo.
+
+Lo hace la base sola al crear el pedido (`pedido_al_crear`). Para consultarlo a mano:
 
 ```sql
 SELECT * FROM zona_para_punto(4.6486, -74.0628);
--- id | nombre | repartidores | dentro
+-- id | nombre | dentro
 ```
-
-Para asignar un pedido nuevo, con el punto geocodificado de su dirección:
-
-```sql
-UPDATE pedidos p
-SET zona_id = z.id
-FROM LATERAL zona_para_punto(p.lat, p.lon) z
-WHERE p.id = $1;
-```
-
-Después el backend elige al repartidor dentro de `z.repartidores`. Por ejemplo, el que
-tenga menos pedidos activos, o el más cercano según su última ubicación.
-
-Recomendaciones:
-
-- Guarda el punto del pedido como `geography(Point, 4326)` o `geometry(Point, 4326)`. Si vas a buscar repartidores por distancia, crea también un índice GIST para esos puntos.
-- Si el resultado trae `dentro = false`, márcalo para revisión: la dirección quedó fuera de las zonas.
-- Antes de importar, revisa que las zonas no se solapen; el panel recorta las vecinas automáticamente al crear o editar.
 
 ## 4. Editar en el panel
 
@@ -161,7 +137,7 @@ En la pestaña **Zonas de reparto**:
 
 Desde el código, para el backend o el equipo técnico (no aparece en la interfaz):
 
-- `window.LEMapa.zonasGeoJSON()` devuelve las zonas de reparto.
-- `window.LEMapa.localidadesGeoJSON()` devuelve las localidades.
+- `window.LEMapa.zonasGeoJSON()` devuelve las zonas (con `area_id` y `repartidor_id`).
+- `window.LEMapa.localidadesGeoJSON()` devuelve las localidades (solo para dibujar el mapa; la base no las guarda).
 - `window.LEMapa.asignar(lat, lon)` aplica la regla de autoasignación y además devuelve la localidad del punto.
-- `window.LEMapa.sql()` devuelve el SQL para PostGIS (tablas, índices, datos y funciones).
+- `window.LEMapa.sql()` devuelve el SQL para cargar las zonas en la tabla `zonas` de la base.

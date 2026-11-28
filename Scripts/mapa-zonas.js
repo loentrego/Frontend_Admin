@@ -291,8 +291,8 @@
   };
   function aGeoJSON() {
     return {
-      type: 'FeatureCollection', name: 'zonas_reparto_loentrego',
-      features: zonas.map((z) => ({ type: 'Feature', id: z.id, properties: { id: z.id, nombre: z.nombre, municipio: z.municipio, repartidores: z.repartidores, capacidad_diaria: Number(z.capacidad) || PEDIDOS_POR_REPARTIDOR, prioridad: Number(z.prioridad) || 0 }, geometry: geometria(z) })),
+      type: 'FeatureCollection', name: 'zonas_loentrego',
+      features: zonas.map((z) => ({ type: 'Feature', id: z.id, properties: { id: z.id, nombre: z.nombre, area_id: z.municipio, repartidor_id: z.repartidores[0] || null, capacidad_diaria: Number(z.capacidad) || PEDIDOS_POR_REPARTIDOR }, geometry: geometria(z) })),
     };
   }
   function territorioGeoJSON() {
@@ -330,11 +330,11 @@
       let id = String(p.id ?? f.id ?? slug(p.nombre || p.name || `zona-${n + 1}`));
       while (usados.has(id)) id += '-2';
       usados.add(id);
-      const mun = String(p.municipio || '').toLowerCase();
+      const mun = String(p.area_id || p.area || p.municipio || '').toLowerCase();
       salida.push({
         id, nombre: String(p.nombre || p.name || `Zona ${n + 1}`),
         municipio: MUNICIPIOS[mun] ? mun : (Object.keys(MUNICIPIOS).find((k) => MUNICIPIOS[k].toLowerCase() === mun) || 'bogota'),
-        repartidores: Array.isArray(p.repartidores) ? p.repartidores.map(String).slice(0, 1) : [],
+        repartidores: p.repartidor_id ? [String(p.repartidor_id)] : Array.isArray(p.repartidores) ? p.repartidores.map(String).slice(0, 1) : [],
         capacidad: Number(p.capacidad_diaria ?? p.capacidad) || PEDIDOS_POR_REPARTIDOR, prioridad: Number(p.prioridad) || 0, partes,
       });
     });
@@ -352,69 +352,20 @@
     const fecha = new Date().toISOString().slice(0, 10);
     const filas = aGeoJSON().features.map((f) => {
       const p = f.properties;
-      return `INSERT INTO zonas_reparto (id, nombre, municipio, repartidores, capacidad_diaria, prioridad, geom)
-VALUES (${sqlTexto(p.id)}, ${sqlTexto(p.nombre)}, ${sqlTexto(p.municipio)}, ARRAY[${p.repartidores.map(sqlTexto).join(', ')}]::text[], ${p.capacidad_diaria}, ${p.prioridad},
+      return `INSERT INTO zonas (id, nombre, area_id, repartidor_id, capacidad_diaria, contorno)
+VALUES (${sqlTexto(p.id)}, ${sqlTexto(p.nombre)}, ${sqlTexto(p.area_id)}, ${p.repartidor_id ? sqlTexto(p.repartidor_id) : 'NULL'}, ${p.capacidad_diaria},
   ST_Multi(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(${sqlTexto(JSON.stringify(f.geometry))}), 4326))))
-ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, municipio = EXCLUDED.municipio, repartidores = EXCLUDED.repartidores,
-  capacidad_diaria = EXCLUDED.capacidad_diaria, prioridad = EXCLUDED.prioridad, geom = EXCLUDED.geom, actualizado = now();`;
+ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, area_id = EXCLUDED.area_id, repartidor_id = EXCLUDED.repartidor_id,
+  capacidad_diaria = EXCLUDED.capacidad_diaria, contorno = EXCLUDED.contorno, archivado_en = NULL;`;
     });
-    const locs = territorioGeoJSON().features.map((f) => `INSERT INTO localidades (id, nombre, municipio, tipo, aproximado, geom)
-VALUES (${sqlTexto(f.properties.id)}, ${sqlTexto(f.properties.nombre)}, ${sqlTexto(f.properties.municipio)}, ${sqlTexto(f.properties.tipo)}, ${f.properties.aproximado ? 'true' : 'false'},
-  ST_Multi(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(${sqlTexto(JSON.stringify(f.geometry))}), 4326))))
-ON CONFLICT (id) DO UPDATE SET nombre = EXCLUDED.nombre, tipo = EXCLUDED.tipo, aproximado = EXCLUDED.aproximado, geom = EXCLUDED.geom;`);
     return `-- LoEntrego · Zonas para PostGIS (generado desde el panel admin, ${fecha})
--- Coordenadas WGS84 (EPSG:4326). Ver docs/zonas-geojson-postgis.md
-
-CREATE EXTENSION IF NOT EXISTS postgis;
-
--- Zonas de reparto: el área de cada repartidor (autoasignación)
-CREATE TABLE IF NOT EXISTS zonas_reparto (
-  id               text PRIMARY KEY,
-  nombre           text NOT NULL,
-  municipio        text NOT NULL,
-  repartidores     text[] NOT NULL DEFAULT '{}',
-  capacidad_diaria integer NOT NULL DEFAULT ${PEDIDOS_POR_REPARTIDOR},
-  prioridad        integer NOT NULL DEFAULT 0,
-  geom             geometry(MultiPolygon, 4326) NOT NULL,
-  actualizado      timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS zonas_reparto_geom_idx ON zonas_reparto USING GIST (geom);
-
--- Localidades (Bogotá), cuadrantes (Funza) y comunas (Soacha): referencia y reportes
-CREATE TABLE IF NOT EXISTS localidades (
-  id         text PRIMARY KEY,
-  nombre     text NOT NULL,
-  municipio  text NOT NULL,
-  tipo       text NOT NULL,
-  aproximado boolean NOT NULL DEFAULT false,
-  geom       geometry(MultiPolygon, 4326) NOT NULL
-);
-CREATE INDEX IF NOT EXISTS localidades_geom_idx ON localidades USING GIST (geom);
+-- Carga en la tabla "zonas" de la base (tecnico_loentrego/db/esquema.sql).
+-- Coordenadas WGS84 (EPSG:4326). repartidor_id debe ser el id (uuid) del repartidor en la base.
+-- Ver docs/zonas-geojson-postgis.md
 
 BEGIN;
 ${filas.join('\n\n')}
-
-${locs.join('\n')}
 COMMIT;
-
--- Autoasignación: zona de reparto del punto (solape: mayor prioridad; hueco: la más cercana)
-CREATE OR REPLACE FUNCTION zona_para_punto(lat double precision, lon double precision)
-RETURNS TABLE (id text, nombre text, repartidores text[], dentro boolean)
-LANGUAGE sql STABLE AS $$
-  WITH p AS (SELECT ST_SetSRID(ST_MakePoint(lon, lat), 4326) AS g)
-  SELECT z.id, z.nombre, z.repartidores, ST_Covers(z.geom, p.g) AS dentro
-  FROM zonas_reparto z, p
-  ORDER BY ST_Covers(z.geom, p.g) DESC, z.prioridad DESC, z.geom <-> p.g
-  LIMIT 1;
-$$;
-
--- Localidad de un punto (para reportes por localidad)
-CREATE OR REPLACE FUNCTION localidad_para_punto(lat double precision, lon double precision)
-RETURNS TABLE (id text, nombre text, municipio text)
-LANGUAGE sql STABLE AS $$
-  SELECT l.id, l.nombre, l.municipio FROM localidades l
-  WHERE ST_Covers(l.geom, ST_SetSRID(ST_MakePoint(lon, lat), 4326)) LIMIT 1;
-$$;
 
 -- Ejemplo:  SELECT * FROM zona_para_punto(4.6486, -74.0628);
 `;
@@ -1226,7 +1177,7 @@ $$;
       else if (acc === 'encuadrar') { animarA(1, 0, 0); }
       else if (acc === 'exportar') { descargar('zonas-reparto-loentrego.geojson', JSON.stringify(aGeoJSON(), null, 2), 'application/geo+json'); aviso(`Zonas de reparto descargadas (${zonas.length}) · GeoJSON WGS84.`); }
       else if (acc === 'exportar-localidades') { descargar('localidades-loentrego.geojson', JSON.stringify(territorioGeoJSON(), null, 2), 'application/geo+json'); aviso(`Localidades descargadas (${territorio.length}) · GeoJSON WGS84.`); }
-      else if (acc === 'sql') { descargar('zonas-loentrego.sql', aSQL(), 'application/sql'); aviso('SQL para PostGIS descargado: zonas de reparto, localidades, índices y funciones <code>zona_para_punto</code> y <code>localidad_para_punto</code>.'); }
+      else if (acc === 'sql') { descargar('zonas-loentrego.sql', aSQL(), 'application/sql'); aviso('SQL para PostGIS descargado: las zonas listas para cargar en la tabla <code>zonas</code> de la base.'); }
       else if (acc === 'importar') $('#mz-archivo').click();
       else if (acc === 'validar') informeValidacion();
       else if (acc === 'restablecer') { if (!confirm('¿Volver a las zonas de reparto iniciales? Se perderán los cambios que no hayas exportado.')) return; zonas = zonasIniciales(); elegida = null; guardar(); pintarDetalle(); aviso('Zonas de reparto iniciales restablecidas.'); }
