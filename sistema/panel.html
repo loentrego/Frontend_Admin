@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070518">
+<meta name="robots" content="noindex, nofollow">
+<title>LoEntrego · Sistema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="sistema.css?v=1">
+<script>
+  (function () {
+    var t = localStorage.getItem('loentrego-sistema-tema') || 'auto';
+    document.documentElement.dataset.tema = t;
+    if (!sessionStorage.getItem('loentrego-sistema-token')) location.replace('index.html');
+  })();
+</script>
+<link rel="icon" href="../img/icons/icon-192.png">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ Navegación ============ -->
+  <aside class="lado">
+    <a class="marca" href="#estado" aria-label="Ir a Estado">
+      <img src="../img/LoEntrego2026-wordmark.png" alt="LoEntrego" width="1383" height="374">
+      <span class="marca-tag">Sistema</span>
+    </a>
+    <nav class="menu" aria-label="Secciones">
+      <a href="#estado" data-ir="estado"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><span>Estado</span></a>
+      <a href="#recursos" data-ir="recursos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h6v6H9zM9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg><span>Recursos</span></a>
+      <a href="#canales" data-ir="canales"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M11 6h10M11 18h10M11 12h10"/><circle cx="6" cy="12" r="2.5"/></svg><span>Canales</span></a>
+      <a href="#mantenimiento" data-ir="mantenimiento"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4Z"/></svg><span>Mantenimiento</span></a>
+      <a href="#nginx" data-ir="nginx"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 21 7v10l-9 5-9-5V7Z"/><path d="M9 16V8l6 8V8"/></svg><span>Nginx</span></a>
+      <a href="#respaldos" data-ir="respaldos"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg><span>Respaldos y HTTPS</span></a>
+      <a href="#seguridad" data-ir="seguridad"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg><span>Seguridad</span></a>
+    </nav>
+    <div class="lado-pie">
+      <a class="ir-admin" href="../Pages/paneladmin.html">Ir al panel de operación</a>
+    </div>
+  </aside>
+
+  <!-- ============ Contenido ============ -->
+  <div class="cuerpo">
+    <header class="barra">
+      <h1 id="titulo">Estado</h1>
+      <span class="conexion" id="conexion" data-modo="buscando"><i aria-hidden="true"></i><span>Conectando…</span></span>
+      <div class="barra-der">
+        <div class="tema" role="group" aria-label="Tema">
+          <button type="button" data-tema="claro" aria-label="Tema claro">☀</button>
+          <button type="button" data-tema="auto" aria-label="Tema automático">A</button>
+          <button type="button" data-tema="oscuro" aria-label="Tema oscuro">☾</button>
+        </div>
+        <button type="button" class="btn-sec" data-accion="salir">Salir</button>
+      </div>
+    </header>
+
+    <!-- Aviso cuando no hay servidor conectado -->
+    <div class="aviso-sin" id="aviso-sin" hidden>
+      <p><b>Sin conexión con el servidor.</b> Este panel lee <code>/api/sistema/…</code>, que llega con el backend.</p>
+      <button type="button" class="btn-sec" data-accion="ejemplo">Ver con datos de ejemplo</button>
+    </div>
+    <div class="aviso-ej" id="aviso-ej" hidden>
+      <p><b>Datos de ejemplo.</b> Nada de lo que ves aquí viene del servidor real y los cambios solo se guardan en este navegador.</p>
+      <button type="button" class="btn-sec" data-accion="sin-ejemplo">Quitar ejemplo</button>
+    </div>
+
+    <main class="vistas">
+      <section class="vista" id="v-estado" data-titulo="Estado"></section>
+      <section class="vista" id="v-recursos" data-titulo="Recursos del servidor" hidden></section>
+      <section class="vista" id="v-canales" data-titulo="Estado de los canales" hidden></section>
+      <section class="vista" id="v-mantenimiento" data-titulo="Mantenimiento" hidden></section>
+      <section class="vista" id="v-nginx" data-titulo="Nginx" hidden></section>
+      <section class="vista" id="v-respaldos" data-titulo="Respaldos y HTTPS" hidden></section>
+      <section class="vista" id="v-seguridad" data-titulo="Seguridad" hidden></section>
+    </main>
+  </div>
+</div>
+
+<!-- Confirmaciones -->
+<dialog class="dialogo" id="dialogo">
+  <form method="dialog">
+    <h2 id="dlg-titulo"></h2>
+    <div id="dlg-texto"></div>
+    <div class="dialogo-acciones">
+      <button value="no" class="btn-sec">Cancelar</button>
+      <button value="si" class="btn-primario" id="dlg-si">Confirmar</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="sistema.js?v=1"></script>
+</body>
+</html>
