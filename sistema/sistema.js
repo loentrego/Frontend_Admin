@@ -41,7 +41,7 @@
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 4000);
     try {
       const r = await fetch(ruta, { method: metodo, signal: ctl.signal, credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sessionStorage.getItem('loentrego-sistema-token')}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
         body: cuerpo ? JSON.stringify(cuerpo) : undefined });
       if (r.status === 401) { salir(); throw new Error('Sesión vencida'); }
       const j = await r.json().catch(() => ({}));
@@ -466,7 +466,7 @@
   });
 
   function marcarTema() { const t = document.documentElement.dataset.tema; $$('button[data-tema]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tema === t))); }
-  function salir() { sessionStorage.removeItem('loentrego-sistema-token'); location.replace('index.html'); }
+  function salir() { localStorage.removeItem('auth_token'); location.replace('../index.html'); }
 
   // ---------------- Arranque ----------------
   async function arrancar() {

@@ -2,9 +2,12 @@
 (() => {
   'use strict';
 
-  // ⚠️ TEMPORAL: cuenta de prueba mientras no hay backend.
-  // Entra al panel sin llamar a la API. QUITAR al conectar los endpoints.
-  const DEMO = { usuario: 'admin', password: 'admin123' };
+  // ⚠️ TEMPORAL: cuentas de prueba mientras no hay backend. QUITAR al conectar los endpoints.
+  // Un solo login: según el rol de la cuenta va al panel de operación o al panel de sistema.
+  const CUENTAS = {
+    admin: { password: 'admin123', token: 'demo-admin', destino: 'Pages/paneladmin.html' },
+    sistema: { password: 'sistema123', token: 'demo-sistema', destino: 'sistema/panel.html' },
+  };
 
   const $ = (id) => document.getElementById(id);
   const form = $('login-form');
@@ -46,13 +49,15 @@
     btn.disabled = true;
     btn.querySelector('.submit-text').textContent = 'Entrando…';
     setTimeout(() => {
-      if (u.toLowerCase() === DEMO.usuario && p === DEMO.password) {
-        localStorage.setItem('auth_token', 'demo-admin');
+      const c = CUENTAS[u.toLowerCase()];
+      if (c && p === c.password) {
+        localStorage.setItem('auth_token', c.token);
         document.body.classList.add('leaving');
-        setTimeout(() => { window.location.href = 'Pages/paneladmin.html'; }, 350);
+        setTimeout(() => { window.location.href = c.destino; }, 350);
         return;
       }
-      // Aquí irá la llamada a la API de autenticación real
+      // Aquí irá la llamada a la API de autenticación real (POST /api/login devuelve el rol:
+      // admin → Pages/paneladmin.html · sistema → sistema/panel.html)
       formError.textContent = 'Usuario o contraseña incorrectos.';
       btn.disabled = false;
       btn.querySelector('.submit-text').textContent = 'Entrar al panel';

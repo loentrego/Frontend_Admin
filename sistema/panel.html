@@ -14,7 +14,8 @@
   (function () {
     var t = localStorage.getItem('loentrego-sistema-tema') || 'auto';
     document.documentElement.dataset.tema = t;
-    if (!sessionStorage.getItem('loentrego-sistema-token')) location.replace('index.html');
+    // Mismo login del admin: solo entra la cuenta de sistema
+    if (localStorage.getItem('auth_token') !== 'demo-sistema') location.replace('../index.html');
   })();
 </script>
 <link rel="icon" href="../img/icons/icon-192.png">
@@ -38,9 +39,6 @@
       <a href="#respaldos" data-ir="respaldos"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg><span>Respaldos y HTTPS</span></a>
       <a href="#seguridad" data-ir="seguridad"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg><span>Seguridad</span></a>
     </nav>
-    <div class="lado-pie">
-      <a class="ir-admin" href="../Pages/paneladmin.html">Ir al panel de operación</a>
-    </div>
   </aside>
 
   <!-- ============ Contenido ============ -->
@@ -94,6 +92,6 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="sistema.js?v=1"></script>
+<script src="sistema.js?v=2"></script>
 </body>
 </html>

@@ -1,11 +1,12 @@
 # Panel de sistema
 
-UI aparte del panel de operación (`Pages/paneladmin.html`). Comparte solo los logos de `img/`: tiene su propio login, HTML, estilos y código.
+UI aparte del panel de operación (`Pages/paneladmin.html`): su propio HTML, estilos y código. El **login es el mismo** del admin (`index.html`): según la cuenta, entra a uno u otro panel.
 
 | Archivo | Qué es |
 |---|---|
-| `index.html` + `login.js` | Acceso técnico. Prueba: usuario `sistema`, clave `sistema123` (temporal, sin backend). La sesión dura mientras la pestaña esté abierta. |
 | `panel.html` + `sistema.js` + `sistema.css` | El panel. |
+
+Cuentas de prueba (temporales, sin backend): `sistema` / `sistema123` entra aquí; `admin` / `admin123` entra al panel de operación.
 
 ## Secciones
 
