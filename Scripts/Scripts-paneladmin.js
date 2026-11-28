@@ -251,6 +251,33 @@
     $('#riders-today').innerHTML = filasRep + filasRep.replace(/<li class="rt-row">/g, '<li class="rt-row" aria-hidden="true">');
 
     $$('.corredor').forEach((c) => { const n = c.firstElementChild.children.length / 2; c.style.setProperty('--dur', `${Math.max(14, n * 3.2)}s`); });
+    renderSolicitudes();
+  }
+
+  // ---------- Solicitudes del formulario Únete (web) ----------
+  // Llegan del formulario de loentrego.com/unete. Con el backend vendrán de GET /api/admin/solicitudes
+  // (tabla solicitudes_comercio); mientras tanto se leen de este navegador. No dependen del periodo.
+  const SOL_KEY = 'loentrego-admin-solicitudes';
+  const loadSol = () => { try { return JSON.parse(localStorage.getItem(SOL_KEY) || '[]'); } catch { return []; } };
+  const saveSol = (l) => { try { localStorage.setItem(SOL_KEY, JSON.stringify(l)); } catch { /* */ } };
+  const hace = (iso) => {
+    const m = Math.round((Date.now() - new Date(iso)) / 60000);
+    if (m < 1) return 'ahora'; if (m < 60) return `hace ${m} min`;
+    const h = Math.round(m / 60); if (h < 24) return `hace ${h} h`;
+    return new Date(iso).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+  function renderSolicitudes() {
+    const lista = loadSol().filter((x) => x.estado !== 'contactada').sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
+    const n = $('#sol-n');
+    n.hidden = !lista.length; n.textContent = lista.length;
+    $('#solicitudes').innerHTML = lista.length ? lista.map((x) => `
+      <li class="sol-row">
+        <span class="avatar com">${initials(x.comercio || '?')}</span>
+        <span class="sol-main"><b>${esc(x.comercio)}</b><small>${esc(x.ubicacion)}${x.pedidos_diarios ? ` · ${esc(x.pedidos_diarios)} pedidos al día` : ''}</small>${x.mensaje ? `<small class="sol-msg">${esc(x.mensaje)}</small>` : ''}</span>
+        <span class="sol-side"><a href="tel:+57${esc(String(x.celular).replace(/\D/g, ''))}">${phone(x.celular)}</a><small>${hace(x.creado)}</small>
+          <button type="button" class="sol-ok" data-action="sol-contactada" data-id="${esc(x.id)}">Ya la contacté</button></span>
+      </li>`).join('')
+      : '<li class="sol-vacio"><span class="isotipo"></span><p>No hay solicitudes nuevas.<br>Aquí llegan los comercios que llenan el formulario Únete de la web.</p></li>';
   }
 
   // ---------- Pedidos ----------
@@ -638,6 +665,7 @@
 
   // ---------- Acciones (delegación) ----------
   const actions = {
+    'sol-contactada': (el) => { saveSol(loadSol().map((x) => (x.id === el.dataset.id ? { ...x, estado: 'contactada' } : x))); renderSolicitudes(); toast('Solicitud marcada como contactada'); },
     'open-order': (el) => openDrawer(el.dataset.id),
     'close-drawer': () => closeDrawer(),
     'set-estado': (el) => {

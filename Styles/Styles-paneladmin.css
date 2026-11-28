@@ -1242,3 +1242,22 @@ body[data-vista="mapa"] .topbar h1 { font-size: 1.375rem; }
 .red-pronto::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 /* Selector de periodo en Repartidores y Comercios */
 .st-cab-periodo .welcome { font-family: var(--font-display); font-weight: 600; color: var(--text-strong); }
+
+/* Solicitudes del formulario Únete (Resumen) */
+.sol-de { font-size: .75rem; color: var(--muted); }
+.sol-n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--lima); color: var(--lima-ink); font: 700 .75rem var(--font-display); vertical-align: 2px; }
+.sol-list { list-style: none; display: flex; flex-direction: column; max-height: 340px; overflow-y: auto; }
+.sol-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: .7rem 0; border-bottom: 1px solid var(--border); }
+.sol-row:last-child { border-bottom: none; }
+.sol-main { display: flex; flex-direction: column; min-width: 0; }
+.sol-main b { color: var(--text-strong); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sol-main small { font-size: .78rem; color: var(--muted); }
+.sol-main .sol-msg { font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sol-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: .8125rem; }
+.sol-side a { color: var(--text-strong); font-weight: 600; text-decoration: none; }
+.sol-side small { font-size: .72rem; color: var(--muted); }
+.sol-ok { margin-top: 4px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-strong); font-size: .72rem; font-weight: 600; color: var(--text); }
+.sol-ok:hover { border-color: var(--lima); color: var(--text-strong); }
+.sol-vacio { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 1.75rem 1rem; text-align: center; font-size: .8125rem; color: var(--muted); }
+.avatar.com { background: color-mix(in srgb, var(--lavanda) 22%, transparent); color: var(--text-strong); }
+.sol-n[hidden] { display: none; }

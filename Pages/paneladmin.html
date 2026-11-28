@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=30">
+<link rel="stylesheet" href="../Styles/Styles-paneladmin.css?v=32">
 <script>(function(){var t=localStorage.getItem('loentrego-admin-tema')||'auto';document.documentElement.dataset.tema=t;})();</script>
 <link rel="icon" href="../img/icons/icon-192.png">
 </head>
@@ -110,10 +110,15 @@
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="redes" id="redes"></div>
-      <div class="cols cols-1">
+      <!-- Esto no cambia con el periodo: el periodo solo afecta las cifras de arriba -->
+      <div class="cols">
         <article class="card">
           <header class="card-head"><h2>Repartidores hoy</h2><a href="#repartidores" class="more">Ver todos</a></header>
           <div class="corredor"><ul class="rt-list" id="riders-today"></ul></div>
+        </article>
+        <article class="card">
+          <header class="card-head"><h2>Solicitudes de Únete <span class="sol-n" id="sol-n" hidden></span></h2><small class="sol-de">Formulario de la web</small></header>
+          <ul class="sol-list" id="solicitudes"></ul>
         </article>
       </div>
     </section>
@@ -280,6 +285,6 @@
 
 <script src="../Scripts/vendor/polygon-clipping.min.js"></script>
 <script src="../Scripts/mapa-zonas.js?v=27"></script>
-<script src="../Scripts/Scripts-paneladmin.js?v=17"></script>
+<script src="../Scripts/Scripts-paneladmin.js?v=18"></script>
 </body>
 </html>
